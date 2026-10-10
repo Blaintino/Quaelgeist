@@ -1,0 +1,53 @@
+package de.nagme
+
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+
+/** Wird vom AlarmManager ausgelöst: zeigt die Meldung und plant ggf. die nächste Wiederholung. */
+class AlarmReceiver : BroadcastReceiver() {
+    override fun onReceive(ctx: Context, intent: Intent) {
+        val id = intent.getLongExtra(Scheduler.EXTRA_ID, -1)
+        if (id < 0) return
+        val store = ReminderStore(ctx)
+        val r = store.get(id) ?: return
+        if (r.done) return
+
+        Notifier.show(ctx, r)
+
+        val canNag = r.nagIntervalMin > 0 && (r.maxNags == 0 || r.nagCount < r.maxNags)
+        val updated = if (canNag) {
+            r.copy(
+                nagCount = r.nagCount + 1,
+                fireAt = System.currentTimeMillis() + r.nagIntervalMin * 60_000L,
+            )
+        } else {
+            // Letzte Meldung: Serien rücken zum nächsten Termin vor, einmalige bleiben überfällig.
+            val next = Recurrence.next(r, System.currentTimeMillis())
+            if (next != null) r.copy(baseAt = next, fireAt = next, nagCount = 0) else r
+        }
+        if (updated != r) store.upsert(updated)
+        if (canNag || updated.fireAt != r.fireAt) Scheduler.schedule(ctx, updated)
+    }
+}
+
+/** Schaltflächen der Benachrichtigung. */
+class ActionReceiver : BroadcastReceiver() {
+    override fun onReceive(ctx: Context, intent: Intent) {
+        val id = intent.getLongExtra(Scheduler.EXTRA_ID, -1)
+        if (id < 0) return
+        val base = intent.getLongExtra(Actions.EXTRA_BASE, -1).takeIf { it >= 0 }
+        when (intent.action) {
+            Actions.DONE -> Actions.markDone(ctx, id, base)
+            Actions.SNOOZE -> Actions.snooze(ctx, id, intent.getIntExtra(Actions.EXTRA_MIN, 10), base)
+            Actions.TOMORROW -> Actions.snoozeTomorrow(ctx, id, base)
+        }
+    }
+}
+
+/** Plant nach Neustart, App-Update oder Zeitumstellung alle Alarme neu. */
+class BootReceiver : BroadcastReceiver() {
+    override fun onReceive(ctx: Context, intent: Intent) {
+        Scheduler.rescheduleAll(ctx)
+    }
+}

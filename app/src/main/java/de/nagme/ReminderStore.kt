@@ -1,0 +1,83 @@
+package de.nagme
+
+import android.content.Context
+import kotlinx.coroutines.flow.MutableStateFlow
+import org.json.JSONArray
+import org.json.JSONObject
+
+/** Speichert alle Erinnerungen lokal als JSON in SharedPreferences. */
+class ReminderStore(context: Context) {
+
+    private val prefs = context.applicationContext
+        .getSharedPreferences("reminders", Context.MODE_PRIVATE)
+
+    @Synchronized
+    fun all(): List<Reminder> {
+        val raw = prefs.getString(KEY, null) ?: return emptyList()
+        return runCatching {
+            val arr = JSONArray(raw)
+            (0 until arr.length()).map { arr.getJSONObject(it).toReminder() }
+        }.getOrDefault(emptyList())
+    }
+
+    @Synchronized
+    fun get(id: Long): Reminder? = all().firstOrNull { it.id == id }
+
+    @Synchronized
+    fun upsert(r: Reminder) {
+        val list = all().toMutableList()
+        val i = list.indexOfFirst { it.id == r.id }
+        if (i >= 0) list[i] = r else list.add(r)
+        save(list)
+    }
+
+    @Synchronized
+    fun delete(id: Long) {
+        save(all().filter { it.id != id })
+    }
+
+    private fun save(list: List<Reminder>) {
+        val arr = JSONArray()
+        list.forEach { arr.put(it.toJson()) }
+        prefs.edit().putString(KEY, arr.toString()).apply()
+        version.value = version.value + 1
+    }
+
+    companion object {
+        private const val KEY = "list"
+
+        /** Zähler, der sich bei jeder Änderung erhöht – die Oberfläche lädt dann neu. */
+        val version = MutableStateFlow(0)
+
+        fun newId(): Long = System.currentTimeMillis() % Int.MAX_VALUE
+    }
+}
+
+private fun Reminder.toJson() = JSONObject().apply {
+    put("id", id)
+    put("title", title)
+    put("baseAt", baseAt)
+    put("fireAt", fireAt)
+    put("repeatType", repeatType.name)
+    put("repeatEvery", repeatEvery)
+    put("weekdayMask", weekdayMask)
+    put("nagIntervalMin", nagIntervalMin)
+    put("maxNags", maxNags)
+    put("nagCount", nagCount)
+    put("done", done)
+}
+
+private fun JSONObject.toReminder() = Reminder(
+    id = getLong("id"),
+    title = getString("title"),
+    baseAt = getLong("baseAt"),
+    fireAt = getLong("fireAt"),
+    repeatType = runCatching { RepeatType.valueOf(getString("repeatType")) }
+        .getOrDefault(RepeatType.NONE),
+    repeatEvery = optInt("repeatEvery", 1),
+    weekdayMask = optInt("weekdayMask", 0),
+    nagIntervalMin = optInt("nagIntervalMin", 5),
+    maxNags = optInt("maxNags", 0),
+    nagCount = optInt("nagCount", 0),
+    done = optBoolean("done", false),
+)
