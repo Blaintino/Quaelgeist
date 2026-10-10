@@ -48,6 +48,17 @@ class ActionReceiver : BroadcastReceiver() {
 /** Plant nach Neustart, App-Update oder Zeitumstellung alle Alarme neu. */
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(ctx: Context, intent: Intent) {
+        // Exportiert (für die System-Broadcasts) – fremde Intents ignorieren.
+        if (intent.action !in HANDLED) return
         Scheduler.rescheduleAll(ctx)
+    }
+
+    private companion object {
+        val HANDLED = setOf(
+            Intent.ACTION_BOOT_COMPLETED,
+            Intent.ACTION_MY_PACKAGE_REPLACED,
+            Intent.ACTION_TIME_CHANGED,
+            Intent.ACTION_TIMEZONE_CHANGED,
+        )
     }
 }

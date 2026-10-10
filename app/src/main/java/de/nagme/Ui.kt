@@ -128,8 +128,8 @@ private fun repeatLabel(r: Reminder): String {
         }
         RepeatType.MONTHLY_DAY -> if (n == 1) "monatlich" else "alle $n Monate"
         RepeatType.MONTHLY_NTH_WEEKDAY -> {
-            val d = Instant.ofEpochMilli(r.baseAt).atZone(zone)
-            val nth = (d.dayOfMonth - 1) / 7 + 1
+            val d = Instant.ofEpochMilli(r.anchorAt).atZone(zone)
+            val nth = Recurrence.nthOf(d.toLocalDate())
             val dow: DayOfWeek = d.dayOfWeek
             val name = dow.getDisplayName(TextStyle.FULL, Locale.getDefault())
             val which = if (nth >= 5) "letzten" else "$nth."
@@ -351,7 +351,7 @@ private fun EditDialog(initial: Reminder?, onDismiss: () -> Unit, onSave: (Remin
                 Box {
                     OutlinedButton(onClick = { menu = true }) { Text(typeLabel(type)) }
                     DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                        RepeatType.values().forEach { t ->
+                        RepeatType.entries.forEach { t ->
                             DropdownMenuItem(
                                 text = { Text(typeLabel(t)) },
                                 onClick = { type = t; menu = false },
@@ -405,18 +405,23 @@ private fun EditDialog(initial: Reminder?, onDismiss: () -> Unit, onSave: (Remin
             TextButton(
                 enabled = title.isNotBlank(),
                 onClick = {
+                    // Termin unverändert und gleiche Regel: ursprünglichen Serienstart behalten,
+                    // damit z. B. „am 31." nach einem 30er-Monat nicht auf den 30. rutscht.
+                    val keepAnchor = initial != null && at == initial.baseAt &&
+                        type == initial.repeatType
                     onSave(
                         Reminder(
                             id = initial?.id ?: ReminderStore.newId(),
                             title = title.trim(),
                             baseAt = at,
                             fireAt = at,
+                            anchorAt = initial?.takeIf { keepAnchor }?.anchorAt ?: at,
                             repeatType = type,
                             repeatEvery = (every.toIntOrNull() ?: 1).coerceAtLeast(1),
                             weekdayMask = if (type == RepeatType.WEEKLY) mask else 0,
                             nagIntervalMin = nag.toIntOrNull() ?: 0,
                             maxNags = maxNags.toIntOrNull() ?: 0,
-                        ),
+                        ).let(Recurrence::alignStart),
                     )
                 },
             ) { Text("Speichern") }

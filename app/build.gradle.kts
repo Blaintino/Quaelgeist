@@ -1,46 +1,67 @@
 plugins {
-    id("com.android.application")
-    id("org.jetbrains.kotlin.android")
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.compose)
 }
+
+// Release-Signatur kommt ausschließlich aus Umgebungsvariablen (lokal oder
+// GitHub-Secrets im CI) – der Schlüssel selbst liegt nie im Repo.
+val keystorePath: String? = System.getenv("ANDROID_KEYSTORE_PATH")
 
 android {
     namespace = "de.nagme"
-    compileSdk = 34
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "de.nagme"
         minSdk = 26
-        targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        targetSdk = 37
+        // Muss bei jedem Update steigen, sonst verweigert Android die Installation.
+        // Im CI kommt sie aus der laufenden Build-Nummer.
+        versionCode = System.getenv("VERSION_CODE")?.toIntOrNull() ?: 1
+        versionName = "1.0.${System.getenv("VERSION_CODE") ?: "0"}"
+        manifestPlaceholders["appLabel"] = "NagMe"
+    }
+
+    signingConfigs {
+        if (keystorePath != null) {
+            create("release") {
+                storeFile = file(keystorePath)
+                storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("ANDROID_KEY_ALIAS")
+                keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
+        // Eigene App-ID für Debug-Builds, damit eine per USB installierte
+        // Debug-Version neben der Obtainium-Version existieren kann.
+        debug {
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+            manifestPlaceholders["appLabel"] = "NagMe (Debug)"
+        }
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
+            signingConfig = signingConfigs.findByName("release")
         }
     }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-    kotlinOptions {
-        jvmTarget = "17"
-    }
+
     buildFeatures {
         compose = true
-    }
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.14"
     }
 }
 
 dependencies {
-    implementation(platform("androidx.compose:compose-bom:2024.09.00"))
-    implementation("androidx.core:core-ktx:1.13.1")
-    implementation("androidx.activity:activity-compose:1.9.2")
-    implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.material3:material3")
-    implementation("androidx.compose.material:material-icons-core")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.activity.compose)
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.material.icons.core)
+    implementation(libs.kotlinx.coroutines.android)
+
+    testImplementation(libs.junit)
 }

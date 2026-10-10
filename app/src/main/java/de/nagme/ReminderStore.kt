@@ -58,6 +58,7 @@ private fun Reminder.toJson() = JSONObject().apply {
     put("title", title)
     put("baseAt", baseAt)
     put("fireAt", fireAt)
+    put("anchorAt", anchorAt)
     put("repeatType", repeatType.name)
     put("repeatEvery", repeatEvery)
     put("weekdayMask", weekdayMask)
@@ -72,6 +73,7 @@ private fun JSONObject.toReminder() = Reminder(
     title = getString("title"),
     baseAt = getLong("baseAt"),
     fireAt = getLong("fireAt"),
+    anchorAt = optLong("anchorAt", getLong("baseAt")),
     repeatType = runCatching { RepeatType.valueOf(getString("repeatType")) }
         .getOrDefault(RepeatType.NONE),
     repeatEvery = optInt("repeatEvery", 1),

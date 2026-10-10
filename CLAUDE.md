@@ -1,31 +1,28 @@
 # NagMe – Hinweise für Claude Code
 
-Android-App (Kotlin, Jetpack Compose, minSdk 26, targetSdk 34) für hartnäckige Erinnerungen
+Android-App (Kotlin, Jetpack Compose, minSdk 26, targetSdk 37) für hartnäckige Erinnerungen
 im Stil der iOS-App „Due". Eine Erinnerung meldet sich im einstellbaren Abstand immer wieder,
 bis sie abgehakt oder verschoben wird. Siehe `README.md` für Funktionen und Dateiübersicht.
 
-## Status
+## Status und Werkzeuge
 
-Der Code wurde geschrieben, aber **nie kompiliert oder getestet**. Die erste Aufgabe ist, ihn
-zum Laufen zu bringen.
+Kompiliert, Lint ohne echte Befunde, Unit-Tests für `Recurrence.kt` in
+`app/src/test/java/de/nagme/RecurrenceTest.kt` (Zeitzone fest `Europe/Berlin`, damit
+Sommer-/Winterzeit-Fälle reproduzierbar sind). Auf einem echten Gerät noch nicht getestet –
+Cloud-Sessions haben weder Emulator noch Handy.
 
-## Erste Aufgabe
-
-1. Gradle-Wrapper erzeugen (liegt nur als `gradle-wrapper.properties` vor):
-   `gradle wrapper --gradle-version 8.7`
-2. `./gradlew assembleDebug` ausführen und alle Compile-Fehler beheben. Dabei nur das Nötige
-   ändern, keine Umbauten.
-3. `./gradlew lint` ausführen und echte Probleme beheben (z. B. fehlende Berechtigungsprüfungen,
-   falsche PendingIntent-Flags). Reine Stil-Warnungen können bleiben.
-4. Unit-Tests für `Recurrence.kt` ergänzen (`app/src/test`), denn die Terminberechnung ist die
-   fehleranfälligste Stelle:
-   - täglich, alle N Tage
-   - wöchentlich mit Wochentagsmaske, auch alle 2 Wochen und über Monatsgrenzen
-   - monatlich am Datum (29.–31. in kurzen Monaten)
-   - n-ter Wochentag, inklusive „letzter" bei 5. Vorkommen
-   - Sommer-/Winterzeitumstellung (Uhrzeit bleibt gleich)
-   - späte Erledigung: der nächste Termin muss nach „jetzt" liegen
-5. Beschreibe am Ende, was du geändert hast und was noch offen ist.
+- Toolchain wie `android-vorlage` (Monorepo `Claude_Code_Projekte`): Gradle 9.8, AGP 9.4 mit
+  eingebautem Kotlin (kein `org.jetbrains.kotlin.android`-Plugin, nur
+  `org.jetbrains.kotlin.plugin.compose`), Versionen in `gradle/libs.versions.toml`, JDK 21.
+- Befehle: `./gradlew testDebugUnitTest lintDebug assembleDebug`.
+- `.github/workflows/build-apk.yml`: Tests + Lint, signierte Release-APK aus den Secrets
+  `ANDROID_KEYSTORE_BASE64` usw.; nur auf `main` mit Secrets ein GitHub Release
+  `nagme-v<run_number>` (Obtainium filtert auf `^nagme-v`). Ohne Secrets Debug-APK mit
+  Warnung. Nie auf Debug-Signatur „umstellen", sonst schlagen Updates am Handy fehl.
+- Release-Signatur nur über Umgebungsvariablen (`ANDROID_KEYSTORE_PATH` usw.), nie einen
+  Keystore einchecken oder in einer Cloud-Session erzeugen.
+- `versionCode` kommt aus `VERSION_CODE` (= `github.run_number` im CI).
+- Debug-Build: App-ID `de.nagme.debug`, Name über den Manifest-Platzhalter `appLabel`.
 
 ## Verhalten, das erhalten bleiben muss
 
@@ -34,8 +31,16 @@ zum Laufen zu bringen.
   überfällig.
 - `Actions`: Aktionen aus alten Benachrichtigungen werden ignoriert, wenn `baseAt` nicht mehr
   zum aktuellen Termin passt (sonst würde ein Abhaken einen späteren Termin überspringen).
-- Snooze setzt nur `fireAt` und `nagCount` zurück, `baseAt` bleibt (die Regel der Serie
-  wird aus `baseAt` abgeleitet).
+- Snooze setzt nur `fireAt` und `nagCount` zurück, `baseAt` bleibt.
+- `Recurrence.next` rechnet ab dem Kalenderdatum von `baseAt`, nimmt Uhrzeit, Tag im Monat
+  und „n-ter Wochentag" aber immer aus `anchorAt` (erster Termin der Serie). Damit rutscht
+  „am 31." nach einem kurzen Monat nicht dauerhaft auf den 30., „5. Donnerstag = letzter"
+  nicht auf „4. Donnerstag" und 02:30 nach der Zeitumstellung nicht auf 03:30. Beim
+  Bearbeiten bleibt `anchorAt` erhalten, solange Termin und Wiederholungsart gleich bleiben.
+  Alte Daten ohne `anchorAt` übernehmen `baseAt`.
+- Wöchentlich mit Wochentagsauswahl: beim Speichern verschiebt `Recurrence.alignStart` den
+  Starttermin auf den ersten ausgewählten Tag, falls der gewählte Starttag selbst nicht
+  dabei ist.
 - `BootReceiver` plant nach Neustart, App-Update und Zeitänderung alle Alarme neu.
 
 ## Rahmenbedingungen
@@ -53,5 +58,4 @@ zum Laufen zu bringen.
 - Eigenes App-Icon statt `ic_popup_reminder`.
 - Hinweis in der App, wenn die Akku-Optimierung das Nagging stören könnte.
 - Backup/Export der Erinnerungen als JSON.
-- Monatliche Wiederholung am 29.–31. ohne Abrutschen auf den kürzeren Monatstag.
 - Dritte Schaltfläche in der Benachrichtigung ersetzbar machen (z. B. „Morgen" statt „+1 Std").
