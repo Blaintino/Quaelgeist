@@ -15,7 +15,10 @@ lokal auf dem Gerät, es gibt keine Google-Dienste, kein Netzwerk und keine Kont
 - **Erledigt oder Verschieben**: In der Benachrichtigung stehen *Erledigt* und
   *Verschieben…*. *Verschieben…* (und Tippen auf die Meldung) öffnet einen Bildschirm mit
   10 Min, 30 Min, 1 Std, 3 Std, Morgen und frei wählbarer Uhrzeit. Bei gesperrtem Handy
-  erscheint dieser Bildschirm direkt als Vollbild-Alarm.
+  muss vorher entsperrt werden, damit nichts versehentlich abgehakt oder verschoben wird.
+- **Mehrere Erinnerungen gleichzeitig**: Jede bekommt ihre eigene Meldung und lässt sich
+  einzeln abhaken oder verschieben. Klingeln und vibrieren tut aber nur die erste; die übrigen
+  kommen still dazu.
 - **Smartwatch / Fitnessband**: Die Meldung ist so gebaut, dass Begleit-Apps wie Huawei
   Health sie weiterleiten (nicht „laufend“, jede Wiederholung als neue Meldung). Eine eigene
   Uhr-App gibt es nicht.
@@ -67,9 +70,11 @@ Was die App von sich aus tut:
   Streckung durch Android. Dafür zeigt die Statusleiste ein Wecker-Symbol, solange ein
   Termin ansteht.
 - Meldung mit Kategorie *Alarm* (kommt bei „Nicht stören“ durch, solange Alarme erlaubt
-  sind), höchster Priorität, sichtbar auf dem Sperrbildschirm und als Vollbild-Alarm.
-- Zusätzlich eine direkte Alarm-Vibration, die auch im Lautlos-Modus läuft und nicht von
-  Herstellereinstellungen für Benachrichtigungs-Vibration gedämpft wird.
+  sind), höchster Priorität und sichtbar auf dem Sperrbildschirm. Bewusst kein Vollbild-Alarm,
+  damit der Erledigt-/Verschieben-Bildschirm nicht ohne Entsperren bedienbar ist.
+- Eine einzelne direkte Alarm-Vibration pro Meldung (der Kanal selbst vibriert nicht), die
+  auch im Lautlos-Modus läuft und nicht von Herstellereinstellungen für
+  Benachrichtigungs-Vibration gedämpft wird.
 - Jede Wiederholung wird als neue Meldung gepostet statt still aktualisiert, damit Ton,
   Vibration und Weiterleitung an die Uhr jedes Mal greifen.
 - Die nächste Wiederholung wird gespeichert und geplant, *bevor* die Meldung erscheint.
@@ -77,7 +82,7 @@ Was die App von sich aus tut:
   angemeldet.
 
 Was du einmalig einstellen musst (die Prüfliste führt hin): Benachrichtigungen erlauben,
-Akku „Nicht eingeschränkt“, Vollbild-Alarm erlauben, „App bei Nichtnutzung pausieren“ aus,
+Akku „Nicht eingeschränkt“, „App bei Nichtnutzung pausieren“ aus,
 bei Samsung Quälgeist zu den „Nie schlafenden Apps“, und in Huawei Health die Meldungen von
 Quälgeist für das Band einschalten.
 
@@ -90,7 +95,7 @@ Quälgeist für das Band einschalten.
 | `ReminderStore.kt` | lokale Speicherung (JSON in SharedPreferences) |
 | `Scheduler.kt` | Alarme über den AlarmManager |
 | `Notifier.kt` | Benachrichtigung, Kanal, direkte Alarm-Vibration |
-| `NagActivity.kt` | Erledigt-/Verschieben-Bildschirm (auch Vollbild über dem Sperrbildschirm) |
+| `NagActivity.kt` | Erledigt-/Verschieben-Bildschirm (nur nach Entsperren) |
 | `Reliability.kt` | Prüfliste „Zuverlässigkeit“ und Test-Erinnerung |
 | `Actions.kt` | Erledigt / Verschieben / Löschen |
 | `Receivers.kt` | Alarm, Schaltflächen, Neustart |

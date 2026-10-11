@@ -80,8 +80,8 @@ object Reliability {
         list += Check(
             "Kanal „Erinnerungen“ auf „Dringend“",
             channel != null && channel.importance >= NotificationManager.IMPORTANCE_HIGH,
-            "Nur mit hoher Wichtigkeit gibt es Pop-up, Ton und Vibration. " +
-                "Bitte dort auch Ton und Vibration eingeschaltet lassen.",
+            "Nur mit hoher Wichtigkeit gibt es Pop-up und Ton. " +
+                "Bitte dort auch den Ton eingeschaltet lassen.",
             "Kanal öffnen",
         ) {
             Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
@@ -115,15 +115,6 @@ object Reliability {
                 "App-Infos öffnen",
                 ::appDetails,
             )
-        }
-
-        if (Build.VERSION.SDK_INT >= 34) {
-            list += Check(
-                "Vollbild-Alarm",
-                sysNm.canUseFullScreenIntent(),
-                "Weckt bei gesperrtem Handy den Bildschirm und zeigt die Erinnerung groß an.",
-                "Erlauben",
-            ) { Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT, pkgUri(it)) }
         }
 
         if (Build.VERSION.SDK_INT >= 30) {

@@ -24,23 +24,32 @@ object Notifier {
 
     /**
      * Neue Kanal-ID, weil Android Einstellungen eines bestehenden Kanals (Vibration, Ton)
-     * nach dem Anlegen nicht mehr ändern lässt. Der alte Kanal `nag` wird entfernt.
+     * nach dem Anlegen nicht mehr ändern lässt. Die alten Kanäle werden entfernt.
      */
-    const val CHANNEL = "nag_alarm"
-    private const val OLD_CHANNEL = "nag"
+    const val CHANNEL = "nag_alert"
+    private val OLD_CHANNELS = listOf("nag", "nag_alarm")
 
-    /** Kräftiges Muster: dreimal lang. Wird für Kanal und direkte Vibration genutzt. */
-    private val PATTERN = longArrayOf(0, 800, 400, 800, 400, 800)
+    /** Länge der einen Vibration pro Meldung. */
+    private const val BUZZ_MS = 1000L
+
+    /**
+     * Werden mehrere Erinnerungen innerhalb dieses Abstands fällig (gleiche Uhrzeit oder
+     * gleichzeitig laufende Nags), klingelt und vibriert nur die erste; die übrigen erscheinen
+     * still als eigene Meldung und lassen sich einzeln abhaken oder verschieben.
+     */
+    private const val ALERT_WINDOW_MS = 15_000L
+    private const val KEY_LAST_ALERT = "lastAlertAt"
 
     fun ensureChannel(ctx: Context) {
         val nm = ctx.getSystemService(NotificationManager::class.java)
-        nm.deleteNotificationChannel(OLD_CHANNEL)
+        OLD_CHANNELS.forEach(nm::deleteNotificationChannel)
         val channel = NotificationChannel(
             CHANNEL, "Erinnerungen", NotificationManager.IMPORTANCE_HIGH,
         ).apply {
             description = "Hartnäckige Erinnerungen, bis du sie abhakst oder verschiebst"
-            enableVibration(true)
-            vibrationPattern = PATTERN
+            // Vibriert wird nur über [buzz], genau einmal pro Meldung. Kanal-Vibration und
+            // direkte Vibration zusammen ergaben sonst eine doppelte Vibration.
+            enableVibration(false)
             enableLights(true)
             lockscreenVisibility = Notification.VISIBILITY_PUBLIC
             setSound(
@@ -67,7 +76,10 @@ object Notifier {
         )
     }
 
-    /** Öffnet den Nag-Bildschirm (Erledigt / Verschieben) – auch über dem Sperrbildschirm. */
+    /**
+     * Öffnet den Nag-Bildschirm (Erledigt / Verschieben). Bei gesperrtem Handy fragt Android
+     * vorher nach dem Entsperren, damit nichts versehentlich abgehakt oder verschoben wird.
+     */
     fun nagScreenIntent(ctx: Context, r: Reminder): PendingIntent {
         val intent = Intent(ctx, NagActivity::class.java).apply {
             data = Uri.parse("quaelgeist://nag/${r.id}")
@@ -81,15 +93,33 @@ object Notifier {
     }
 
     /**
+     * Darf diese Meldung klingeln und vibrieren? Nein, wenn eine andere Erinnerung das gerade
+     * erst getan hat (siehe [ALERT_WINDOW_MS]). Alarm-Broadcasts laufen nacheinander im
+     * Hauptthread, daher reicht ein einfacher Zeitstempel. commit() wie im [ReminderStore].
+     */
+    @SuppressLint("ApplySharedPref")
+    fun claimAlert(ctx: Context): Boolean {
+        val prefs = ctx.applicationContext.getSharedPreferences("notifier", Context.MODE_PRIVATE)
+        val now = System.currentTimeMillis()
+        val last = prefs.getLong(KEY_LAST_ALERT, 0)
+        if (now - last in 0 until ALERT_WINDOW_MS) return false
+        prefs.edit().putLong(KEY_LAST_ALERT, now).commit()
+        return true
+    }
+
+    /**
      * Zeigt die Meldung. Bewusst so gebaut, dass sie möglichst überall ankommt:
      * - Kategorie ALARM: kommt bei „Nicht stören" durch, solange dort Alarme erlaubt sind
      *   (Standard).
-     * - Vollbild-Intent: weckt bei gesperrtem Handy den Bildschirm wie ein Wecker.
+     * - Kein Vollbild-Intent: Der hat bei gesperrtem Handy den Erledigt-/Verschieben-Bildschirm
+     *   ohne Entsperren gezeigt – zu leicht versehentlich bedient.
      * - Nicht „laufend" (ongoing) und jedes Mal neu gepostet statt aktualisiert: Uhren-Apps
      *   wie Huawei Health spiegeln laufende oder nur aktualisierte Meldungen oft nicht.
+     * - [alert] = false: still (kein Ton, kein Pop-up), weil gerade eine andere Erinnerung
+     *   gemeldet wurde.
      */
     @SuppressLint("MissingPermission")
-    fun show(ctx: Context, r: Reminder) {
+    fun show(ctx: Context, r: Reminder, alert: Boolean = true) {
         ensureChannel(ctx)
         val nm = NotificationManagerCompat.from(ctx)
         if (!nm.areNotificationsEnabled()) return
@@ -109,15 +139,14 @@ object Notifier {
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .setVibrate(PATTERN)
             .setDefaults(NotificationCompat.DEFAULT_SOUND or NotificationCompat.DEFAULT_LIGHTS)
+            .setSilent(!alert)
             .setOnlyAlertOnce(false)
             .setAutoCancel(false)
             .setOngoing(false)
             .setWhen(System.currentTimeMillis())
             .setShowWhen(true)
             .setContentIntent(screen)
-            .setFullScreenIntent(screen, true)
             .addAction(0, "Erledigt", actionIntent(ctx, r, Actions.DONE))
             .addAction(0, "Verschieben…", screen)
             .build()
@@ -128,13 +157,13 @@ object Notifier {
     }
 
     /**
-     * Vibriert zusätzlich direkt als Alarm-Vibration. Die läuft auch im Lautlos-Modus und wenn
+     * Vibriert einmal direkt als Alarm-Vibration. Die läuft auch im Lautlos-Modus und wenn
      * der Hersteller die Vibration von Benachrichtigungen dämpft – das war bei anderen
      * Erinnerungs-Apps der Grund für unzuverlässigen Vibrationsalarm.
      */
     @Suppress("DEPRECATION")
     fun buzz(ctx: Context) {
-        val effect = VibrationEffect.createWaveform(PATTERN, -1)
+        val effect = VibrationEffect.createOneShot(BUZZ_MS, VibrationEffect.DEFAULT_AMPLITUDE)
         val vibrator = if (Build.VERSION.SDK_INT >= 31) {
             ctx.getSystemService(VibratorManager::class.java).defaultVibrator
         } else {

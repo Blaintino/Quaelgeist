@@ -2,10 +2,8 @@ package de.quaelgeist
 
 import android.app.TimePickerDialog
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
 import android.text.format.DateFormat
-import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
@@ -43,8 +41,9 @@ import java.time.format.FormatStyle
 
 /**
  * Bildschirm für eine fällige Erinnerung: Erledigt oder Verschieben.
- * Öffnet sich über den Vollbild-Intent (auch über dem Sperrbildschirm), beim Tippen auf die
- * Meldung und über die Schaltfläche „Verschieben…".
+ * Öffnet sich beim Tippen auf die Meldung und über die Schaltfläche „Verschieben…".
+ * Bewusst nicht über dem Sperrbildschirm: Android verlangt vorher das Entsperren, damit
+ * nichts versehentlich abgehakt oder verschoben wird.
  */
 class NagActivity : ComponentActivity() {
 
@@ -52,7 +51,6 @@ class NagActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        showOverLockScreen()
         reminderId.longValue = intent.getLongExtra(Scheduler.EXTRA_ID, -1)
         setContent {
             NagTheme {
@@ -65,19 +63,6 @@ class NagActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         reminderId.longValue = intent.getLongExtra(Scheduler.EXTRA_ID, -1)
-    }
-
-    @Suppress("DEPRECATION")
-    private fun showOverLockScreen() {
-        if (Build.VERSION.SDK_INT >= 27) {
-            setShowWhenLocked(true)
-            setTurnScreenOn(true)
-        } else {
-            window.addFlags(
-                WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
-                    WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON,
-            )
-        }
     }
 }
 
