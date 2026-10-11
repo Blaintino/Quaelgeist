@@ -30,13 +30,18 @@ Cloud-Sessions haben weder Emulator noch Handy.
   Erinnerungs-App kamen Meldungen und Vibration unzuverlässig und nie aufs Huawei Band 11).
   Deshalb nicht zurückbauen ohne Rücksprache:
   - `Scheduler` nutzt `setAlarmClock` (Wecker-Alarm), Fallback nur ohne Exakt-Berechtigung.
-  - Kanal `nag_alarm` (neue ID, weil Kanaleinstellungen nach dem Anlegen fest sind; der alte
-    Kanal `nag` wird gelöscht), Kategorie `ALARM` (durch „Nicht stören“), Vollbild-Intent auf
-    `NagActivity`, `VISIBILITY_PUBLIC`.
+  - Kanal `nag_alert` ohne Kanal-Vibration (neue ID, weil Kanaleinstellungen nach dem Anlegen
+    fest sind; die alten Kanäle `nag` und `nag_alarm` werden gelöscht), Kategorie `ALARM`
+    (durch „Nicht stören“), `VISIBILITY_PUBLIC`.
+  - Kein Vollbild-Intent und `NagActivity` nicht über dem Sperrbildschirm (Wunsch des
+    Nutzers: Angst vor versehentlichem Abhaken/Verschieben ohne Entsperren).
   - Meldung nicht `ongoing` und vor jedem Nag `cancel` + `notify`: Huawei Health und
     ähnliche Begleit-Apps spiegeln laufende oder nur aktualisierte Meldungen oft nicht.
-  - `Notifier.buzz`: zusätzliche direkte Vibration mit `USAGE_ALARM` (läuft auch lautlos und
-    aus dem Hintergrund).
+  - `Notifier.buzz`: die einzige Vibration, genau ein Impuls pro Meldung (Wunsch des Nutzers),
+    mit `USAGE_ALARM` (läuft auch lautlos und aus dem Hintergrund).
+  - Gleichzeitig fällige Erinnerungen: jede bekommt eine eigene Meldung (eigene ID, einzeln
+    bedienbar), aber nur die erste innerhalb von 15 s klingelt und vibriert
+    (`Notifier.claimAlert`), die übrigen werden mit `setSilent` gepostet.
   - `ReminderStore` schreibt mit `commit()`, nicht `apply()` (Receiver-Prozess kann sofort
     sterben).
   - `MainActivity` ruft bei jedem Start `Scheduler.rescheduleAll` auf; das überspringt

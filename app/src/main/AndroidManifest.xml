@@ -8,7 +8,6 @@
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.VIBRATE" />
-    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
     <!-- Für den Knopf „Huawei Health öffnen" in der Prüfliste. -->
@@ -31,15 +30,13 @@
             </intent-filter>
         </activity>
 
-        <!-- Erledigt/Verschieben-Bildschirm, auch über dem Sperrbildschirm (Vollbild-Alarm). -->
+        <!-- Erledigt/Verschieben-Bildschirm; bewusst nicht über dem Sperrbildschirm. -->
         <activity
             android:name=".NagActivity"
             android:exported="false"
             android:excludeFromRecents="true"
             android:launchMode="singleTop"
-            android:showWhenLocked="true"
-            android:taskAffinity="de.quaelgeist.nag"
-            android:turnScreenOn="true" />
+            android:taskAffinity="de.quaelgeist.nag" />
 
         <receiver
             android:name=".AlarmReceiver"

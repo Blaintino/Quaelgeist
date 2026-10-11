@@ -30,8 +30,11 @@ class AlarmReceiver : BroadcastReceiver() {
         if (updated != r) store.upsert(updated)
         if (canNag || updated.fireAt != r.fireAt) Scheduler.schedule(ctx, updated)
 
-        runCatching { Notifier.show(ctx, r) }
-        runCatching { Notifier.buzz(ctx) }
+        // Mehrere gleichzeitig fällige Erinnerungen: jede bekommt ihre eigene Meldung,
+        // aber nur die erste klingelt und vibriert.
+        val alert = runCatching { Notifier.claimAlert(ctx) }.getOrDefault(true)
+        runCatching { Notifier.show(ctx, r, alert) }
+        if (alert) runCatching { Notifier.buzz(ctx) }
     }
 }
 
