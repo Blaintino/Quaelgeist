@@ -1,4 +1,4 @@
-package de.nagme
+package de.quaelgeist
 
 import android.content.Context
 import java.time.Instant
@@ -7,7 +7,7 @@ import java.time.ZoneId
 /** Aktionen auf Erinnerungen – gemeinsam genutzt von Benachrichtigung und Oberfläche. */
 object Actions {
 
-    const val DONE = "de.nagme.DONE"
+    const val DONE = "de.quaelgeist.DONE"
     const val EXTRA_BASE = "base"
 
     /**

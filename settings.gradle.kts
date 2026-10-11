@@ -13,5 +13,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "NagMe"
+rootProject.name = "Quaelgeist"
 include(":app")

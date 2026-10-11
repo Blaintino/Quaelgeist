@@ -1,4 +1,4 @@
-package de.nagme
+package de.quaelgeist
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull

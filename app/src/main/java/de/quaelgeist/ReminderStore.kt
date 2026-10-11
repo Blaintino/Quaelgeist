@@ -1,4 +1,4 @@
-package de.nagme
+package de.quaelgeist
 
 import android.annotation.SuppressLint
 import android.content.Context

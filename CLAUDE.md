@@ -1,4 +1,4 @@
-# NagMe – Hinweise für Claude Code
+# Quälgeist – Hinweise für Claude Code
 
 Android-App (Kotlin, Jetpack Compose, minSdk 26, targetSdk 37) für hartnäckige Erinnerungen
 im Stil der iOS-App „Due". Eine Erinnerung meldet sich im einstellbaren Abstand immer wieder,
@@ -7,7 +7,7 @@ bis sie abgehakt oder verschoben wird. Siehe `README.md` für Funktionen und Dat
 ## Status und Werkzeuge
 
 Kompiliert, Lint ohne echte Befunde, Unit-Tests für `Recurrence.kt` in
-`app/src/test/java/de/nagme/RecurrenceTest.kt` (Zeitzone fest `Europe/Berlin`, damit
+`app/src/test/java/de/quaelgeist/RecurrenceTest.kt` (Zeitzone fest `Europe/Berlin`, damit
 Sommer-/Winterzeit-Fälle reproduzierbar sind). Auf einem echten Gerät noch nicht getestet –
 Cloud-Sessions haben weder Emulator noch Handy.
 
@@ -17,12 +17,12 @@ Cloud-Sessions haben weder Emulator noch Handy.
 - Befehle: `./gradlew testDebugUnitTest lintDebug assembleDebug`.
 - `.github/workflows/build-apk.yml`: Tests + Lint, signierte Release-APK aus den Secrets
   `ANDROID_KEYSTORE_BASE64` usw.; nur auf `main` mit Secrets ein GitHub Release
-  `nagme-v<run_number>` (Obtainium filtert auf `^nagme-v`). Ohne Secrets Debug-APK mit
+  `quaelgeist-v<run_number>` (Obtainium filtert auf `^quaelgeist-v`). Ohne Secrets Debug-APK mit
   Warnung. Nie auf Debug-Signatur „umstellen", sonst schlagen Updates am Handy fehl.
 - Release-Signatur nur über Umgebungsvariablen (`ANDROID_KEYSTORE_PATH` usw.), nie einen
   Keystore einchecken oder in einer Cloud-Session erzeugen.
 - `versionCode` kommt aus `VERSION_CODE` (= `github.run_number` im CI).
-- Debug-Build: App-ID `de.nagme.debug`, Name über den Manifest-Platzhalter `appLabel`.
+- Debug-Build: App-ID `de.quaelgeist.debug`, Name über den Manifest-Platzhalter `appLabel`.
 
 ## Verhalten, das erhalten bleiben muss
 
@@ -65,6 +65,11 @@ Cloud-Sessions haben weder Emulator noch Handy.
 - `BootReceiver` plant nach Neustart, App-Update und Zeitänderung alle Alarme neu.
 
 ## Rahmenbedingungen
+
+- Hieß früher „NagMe“ (umbenannt, damit es nicht nach der Play-Store-App „Nag Reminder“
+  klingt). App-Name mit Umlaut „Quälgeist“, alles Technische ohne: Repo `Quaelgeist`,
+  Paket/App-ID `de.quaelgeist`, Release-Tags `quaelgeist-v…`, APK `Quaelgeist-….apk`.
+- Öffentliches Repo, Lizenz GPL-3.0 (`LICENSE`).
 
 - Nur lokal: keine Google-Dienste, kein Netzwerk, keine Tracker, keine Konten.
 - Keine zusätzlichen Abhängigkeiten ohne guten Grund. Aktuell nur Compose, Core-KTX,

@@ -1,4 +1,4 @@
-package de.nagme
+package de.quaelgeist
 
 import java.time.DayOfWeek
 import java.time.Instant

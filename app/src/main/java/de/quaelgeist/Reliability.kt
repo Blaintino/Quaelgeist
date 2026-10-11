@@ -1,4 +1,4 @@
-package de.nagme
+package de.quaelgeist
 
 import android.annotation.SuppressLint
 import android.app.ActivityManager
@@ -70,7 +70,7 @@ object Reliability {
         list += Check(
             "Benachrichtigungen erlaubt",
             nm.areNotificationsEnabled(),
-            "Ohne diese Erlaubnis kann NagMe gar nichts anzeigen.",
+            "Ohne diese Erlaubnis kann Quälgeist gar nichts anzeigen.",
             "Einstellungen öffnen",
         ) {
             Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
@@ -93,7 +93,7 @@ object Reliability {
             list += Check(
                 "Exakte Wecker-Alarme",
                 Scheduler.canScheduleExact(ctx),
-                "Damit meldet sich NagMe pünktlich wie ein Wecker – auch im Tiefschlaf.",
+                "Damit meldet sich Quälgeist pünktlich wie ein Wecker – auch im Tiefschlaf.",
                 "Erlauben",
             ) { Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, pkgUri(it)) }
         }
@@ -140,14 +140,14 @@ object Reliability {
             "Samsung: „Nie schlafende Apps“",
             null,
             "Einstellungen → Akku → Hintergrundnutzungslimits → „Nie schlafende Apps“ → " +
-                "NagMe hinzufügen. Dort am besten auch „Nicht verwendete Apps in Standby " +
+                "Quälgeist hinzufügen. Dort am besten auch „Nicht verwendete Apps in Standby " +
                 "versetzen“ ausschalten. Lässt sich von der App aus nicht prüfen.",
         )
 
         list += Check(
-            "Huawei Band: Meldungen von NagMe",
+            "Huawei Band: Meldungen von Quälgeist",
             null,
-            "In Huawei Health: Geräte → Band 11 → Benachrichtigungen → NagMe einschalten. " +
+            "In Huawei Health: Geräte → Band 11 → Benachrichtigungen → Quälgeist einschalten. " +
                 "Huawei Health selbst braucht ebenfalls Akku „Nicht eingeschränkt“ und den " +
                 "Benachrichtigungszugriff. Viele Bänder leiten nur weiter, solange der " +
                 "Handy-Bildschirm aus ist – zum Testen also das Handy sperren.",
@@ -159,7 +159,7 @@ object Reliability {
         list += Check(
             "„Nicht stören“ / Schlafenszeit",
             null,
-            "NagMe-Meldungen gelten als Alarm und kommen durch, solange bei „Nicht stören“ " +
+            "Quälgeist-Meldungen gelten als Alarm und kommen durch, solange bei „Nicht stören“ " +
                 "Alarme erlaubt sind (Standard). Im Lautlos-Modus bleibt der Ton aus, " +
                 "vibriert wird trotzdem.",
         )
@@ -180,7 +180,7 @@ object Reliability {
         val at = System.currentTimeMillis() + 15_000
         val r = Reminder(
             id = ReminderStore.newId(),
-            title = "NagMe-Test",
+            title = "Quälgeist-Test",
             baseAt = at,
             fireAt = at,
             nagIntervalMin = 1,
@@ -213,7 +213,7 @@ fun ReliabilityScreen(tick: Int, onBack: () -> Unit, contentPadding: PaddingValu
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text("Test", style = MaterialTheme.typography.titleMedium)
                         Text(
-                            "Legt „NagMe-Test“ an: kommt in 15 Sekunden und dann noch zweimal " +
+                            "Legt „Quälgeist-Test“ an: kommt in 15 Sekunden und dann noch zweimal " +
                                 "im Minutentakt. Handy danach sperren und auf Handy und Band " +
                                 "achten.",
                         )

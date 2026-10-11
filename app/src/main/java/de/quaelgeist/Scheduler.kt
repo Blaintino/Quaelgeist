@@ -1,4 +1,4 @@
-package de.nagme
+package de.quaelgeist
 
 import android.app.AlarmManager
 import android.app.PendingIntent
@@ -13,7 +13,7 @@ object Scheduler {
 
     private fun firePendingIntent(ctx: Context, id: Long): PendingIntent {
         val intent = Intent(ctx, AlarmReceiver::class.java).apply {
-            data = Uri.parse("nagme://fire/$id")
+            data = Uri.parse("quaelgeist://fire/$id")
             putExtra(EXTRA_ID, id)
         }
         return PendingIntent.getBroadcast(

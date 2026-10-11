@@ -8,18 +8,18 @@ plugins {
 val keystorePath: String? = System.getenv("ANDROID_KEYSTORE_PATH")
 
 android {
-    namespace = "de.nagme"
+    namespace = "de.quaelgeist"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "de.nagme"
+        applicationId = "de.quaelgeist"
         minSdk = 26
         targetSdk = 37
         // Muss bei jedem Update steigen, sonst verweigert Android die Installation.
         // Im CI kommt sie aus der laufenden Build-Nummer.
         versionCode = System.getenv("VERSION_CODE")?.toIntOrNull() ?: 1
         versionName = "1.0.${System.getenv("VERSION_CODE") ?: "0"}"
-        manifestPlaceholders["appLabel"] = "NagMe"
+        manifestPlaceholders["appLabel"] = "Quälgeist"
     }
 
     signingConfigs {
@@ -39,7 +39,7 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
-            manifestPlaceholders["appLabel"] = "NagMe (Debug)"
+            manifestPlaceholders["appLabel"] = "Quälgeist (Debug)"
         }
         release {
             isMinifyEnabled = true

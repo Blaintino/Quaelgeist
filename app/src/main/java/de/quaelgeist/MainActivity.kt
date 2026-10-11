@@ -1,4 +1,4 @@
-package de.nagme
+package de.quaelgeist
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity

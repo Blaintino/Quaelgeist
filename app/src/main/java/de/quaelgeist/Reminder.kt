@@ -1,4 +1,4 @@
-package de.nagme
+package de.quaelgeist
 
 enum class RepeatType { NONE, DAILY, WEEKLY, MONTHLY_DAY, MONTHLY_NTH_WEEKDAY }
 

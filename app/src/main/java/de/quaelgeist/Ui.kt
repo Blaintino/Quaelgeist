@@ -1,4 +1,4 @@
-package de.nagme
+package de.quaelgeist
 
 import android.Manifest
 import android.app.DatePickerDialog
@@ -207,7 +207,7 @@ fun App() {
                 modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 4.dp),
             ) {
                 Text(
-                    "NagMe",
+                    "Quälgeist",
                     style = MaterialTheme.typography.headlineMedium,
                     modifier = Modifier.weight(1f),
                 )

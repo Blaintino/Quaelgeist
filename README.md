@@ -1,4 +1,6 @@
-# NagMe
+# Quälgeist
+
+(Früher „NagMe“; Repo und Paketname schreiben sich ohne Umlaut: `Quaelgeist`, `de.quaelgeist`.)
 
 Android-App für hartnäckige Erinnerungen im Stil von Due: Eine Erinnerung meldet sich im
 einstellbaren Abstand immer wieder, bis du sie abhakst oder verschiebst. Alle Daten bleiben
@@ -22,7 +24,7 @@ lokal auf dem Gerät, es gibt keine Google-Dienste, kein Netzwerk und keine Kont
 
 Gleiches Prinzip wie `android-vorlage` im Monorepo `Claude_Code_Projekte` und der
 AntennaPod-Fork: Jeder Push auf `main` baut per GitHub Actions eine signierte APK und
-legt ein GitHub Release `nagme-v<Laufnummer>` an; installiert und aktualisiert wird über
+legt ein GitHub Release `quaelgeist-v<Laufnummer>` an; installiert und aktualisiert wird über
 [Obtainium](https://obtainium.imranr.dev/).
 
 Einmalige Einrichtung:
@@ -33,9 +35,9 @@ Einmalige Einrichtung:
    `ANDROID_KEY_PASSWORD`. Ohne Secrets baut der Workflow nur eine Debug-APK als
    Artefakt (kein Release), über die keine Updates möglich sind.
 2. **Obtainium:** App hinzufügen mit der URL dieses Repos; unter „Filter release titles
-   by regular expression" `^nagme-v` eintragen. Solange das Repo privat ist, braucht
-   Obtainium dafür einen GitHub-Token (wie bei `android-vorlage`, siehe dort
-   `ANLEITUNG-LOKAL.md`).
+   by regular expression" `^quaelgeist-v` eintragen. Das Repo ist öffentlich, ein
+   GitHub-Token ist nicht nötig. Alternativ die APK einfach unter *Releases*
+   herunterladen und installieren.
 
 ## Lokal bauen
 
@@ -47,7 +49,7 @@ JDK 21 + Android SDK (`local.properties` mit `sdk.dir=…` oder `ANDROID_HOME`),
 ./gradlew installDebug        # direkt aufs per USB verbundene Handy
 ```
 
-Debug-Builds haben die App-ID `de.nagme.debug` und heißen „NagMe (Debug)", damit sie
+Debug-Builds haben die App-ID `de.quaelgeist.debug` und heißen „Quälgeist (Debug)", damit sie
 neben der per Obtainium installierten Release-Version laufen können.
 
 Voraussetzungen fürs Handy: Android 8.0 (API 26) oder neuer.
@@ -76,8 +78,8 @@ Was die App von sich aus tut:
 
 Was du einmalig einstellen musst (die Prüfliste führt hin): Benachrichtigungen erlauben,
 Akku „Nicht eingeschränkt“, Vollbild-Alarm erlauben, „App bei Nichtnutzung pausieren“ aus,
-bei Samsung NagMe zu den „Nie schlafenden Apps“, und in Huawei Health die Meldungen von
-NagMe für das Band einschalten.
+bei Samsung Quälgeist zu den „Nie schlafenden Apps“, und in Huawei Health die Meldungen von
+Quälgeist für das Band einschalten.
 
 ## Aufbau
 
@@ -102,3 +104,10 @@ NagMe für das Band einschalten.
 - Monatliche Wiederholung am 29.–31. fällt in kürzeren Monaten auf den letzten Tag des
   Monats, im Folgemonat aber wieder auf das ursprüngliche Datum.
 - Erledigte einmalige Erinnerungen bleiben in der Liste, bis du sie löschst.
+
+## Lizenz
+
+Copyright (C) 2026 Frederik Langner
+
+Dieses Programm ist freie Software unter der **GNU General Public License v3.0**,
+siehe [`LICENSE`](LICENSE). Es wird ohne jede Gewährleistung bereitgestellt.

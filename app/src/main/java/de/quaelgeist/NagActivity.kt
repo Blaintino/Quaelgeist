@@ -1,4 +1,4 @@
-package de.nagme
+package de.quaelgeist
 
 import android.app.TimePickerDialog
 import android.content.Intent

@@ -1,4 +1,4 @@
-package de.nagme
+package de.quaelgeist
 
 import android.annotation.SuppressLint
 import android.app.Notification
@@ -57,7 +57,7 @@ object Notifier {
     private fun actionIntent(ctx: Context, r: Reminder, action: String): PendingIntent {
         val intent = Intent(ctx, ActionReceiver::class.java).apply {
             this.action = action
-            data = Uri.parse("nagme://action/${r.id}/$action")
+            data = Uri.parse("quaelgeist://action/${r.id}/$action")
             putExtra(Scheduler.EXTRA_ID, r.id)
             putExtra(Actions.EXTRA_BASE, r.baseAt)
         }
@@ -70,7 +70,7 @@ object Notifier {
     /** Öffnet den Nag-Bildschirm (Erledigt / Verschieben) – auch über dem Sperrbildschirm. */
     fun nagScreenIntent(ctx: Context, r: Reminder): PendingIntent {
         val intent = Intent(ctx, NagActivity::class.java).apply {
-            data = Uri.parse("nagme://nag/${r.id}")
+            data = Uri.parse("quaelgeist://nag/${r.id}")
             putExtra(Scheduler.EXTRA_ID, r.id)
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
         }
