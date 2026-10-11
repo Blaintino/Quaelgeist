@@ -6,6 +6,7 @@ import android.app.TimePickerDialog
 import android.content.pm.PackageManager
 import android.os.Build
 import android.text.format.DateFormat
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -28,8 +29,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FloatingActionButton
@@ -157,6 +160,9 @@ fun App() {
     var now by remember { mutableStateOf(System.currentTimeMillis()) }
     var editing by remember { mutableStateOf<Reminder?>(null) }
     var creating by remember { mutableStateOf(false) }
+    var showReliability by remember { mutableStateOf(false) }
+    val tick by MainActivity.resumeTick.collectAsState()
+    val reliable = remember(tick, showReliability) { Reliability.allOk(ctx) }
 
     val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
     LaunchedEffect(Unit) {
@@ -180,6 +186,14 @@ fun App() {
         Scheduler.schedule(ctx, r)
     }
 
+    if (showReliability) {
+        BackHandler { showReliability = false }
+        Scaffold { padding ->
+            ReliabilityScreen(tick, onBack = { showReliability = false }, contentPadding = padding)
+        }
+        return
+    }
+
     Scaffold(
         floatingActionButton = {
             FloatingActionButton(onClick = { creating = true }) {
@@ -188,11 +202,38 @@ fun App() {
         },
     ) { padding ->
         Column(Modifier.padding(padding)) {
-            Text(
-                "NagMe",
-                style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp),
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 4.dp),
+            ) {
+                Text(
+                    "NagMe",
+                    style = MaterialTheme.typography.headlineMedium,
+                    modifier = Modifier.weight(1f),
+                )
+                IconButton(onClick = { showReliability = true }) {
+                    Icon(Icons.Default.Settings, contentDescription = "Zuverlässigkeit")
+                }
+            }
+            if (!reliable) {
+                Card(
+                    onClick = { showReliability = true },
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, end = 16.dp, top = 12.dp),
+                ) {
+                    Column(Modifier.padding(16.dp)) {
+                        Text(
+                            "Erinnerungen könnten blockiert werden",
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                        Text("Tippen, um die Einstellungen zu prüfen.")
+                    }
+                }
+            }
             if (reminders.isEmpty()) {
                 Text(
                     "Noch keine Erinnerungen. Tippe auf +, um eine anzulegen.",
@@ -298,7 +339,7 @@ private fun EditDialog(initial: Reminder?, onDismiss: () -> Unit, onSave: (Remin
     var type by remember { mutableStateOf(initial?.repeatType ?: RepeatType.NONE) }
     var every by remember { mutableStateOf((initial?.repeatEvery ?: 1).toString()) }
     var mask by remember { mutableStateOf(initial?.weekdayMask ?: 0) }
-    var nag by remember { mutableStateOf((initial?.nagIntervalMin ?: 5).toString()) }
+    var nag by remember { mutableStateOf((initial?.nagIntervalMin ?: 10).toString()) }
     var maxNags by remember { mutableStateOf((initial?.maxNags ?: 0).toString()) }
     var menu by remember { mutableStateOf(false) }
 

@@ -1,5 +1,6 @@
 package de.nagme
 
+import android.annotation.SuppressLint
 import android.content.Context
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.json.JSONArray
@@ -36,10 +37,13 @@ class ReminderStore(context: Context) {
         save(all().filter { it.id != id })
     }
 
+    @SuppressLint("ApplySharedPref")
     private fun save(list: List<Reminder>) {
         val arr = JSONArray()
         list.forEach { arr.put(it.toJson()) }
-        prefs.edit().putString(KEY, arr.toString()).apply()
+        // commit() statt apply(): Der AlarmReceiver läuft nur kurz, der nächste Nag-Termin
+        // muss sicher auf der Platte stehen, bevor Android den Prozess beendet.
+        prefs.edit().putString(KEY, arr.toString()).commit()
         version.value = version.value + 1
     }
 
@@ -78,7 +82,7 @@ private fun JSONObject.toReminder() = Reminder(
         .getOrDefault(RepeatType.NONE),
     repeatEvery = optInt("repeatEvery", 1),
     weekdayMask = optInt("weekdayMask", 0),
-    nagIntervalMin = optInt("nagIntervalMin", 5),
+    nagIntervalMin = optInt("nagIntervalMin", 10),
     maxNags = optInt("maxNags", 0),
     nagCount = optInt("nagCount", 0),
     done = optBoolean("done", false),

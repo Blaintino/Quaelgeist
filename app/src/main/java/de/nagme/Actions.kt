@@ -8,10 +8,7 @@ import java.time.ZoneId
 object Actions {
 
     const val DONE = "de.nagme.DONE"
-    const val SNOOZE = "de.nagme.SNOOZE"
-    const val TOMORROW = "de.nagme.TOMORROW"
     const val EXTRA_BASE = "base"
-    const val EXTRA_MIN = "minutes"
 
     /**
      * [expectedBase] stammt aus einer Benachrichtigung. Passt es nicht mehr zum aktuellen Termin
@@ -39,22 +36,23 @@ object Actions {
         Scheduler.schedule(ctx, updated)
     }
 
-    fun snooze(ctx: Context, id: Long, minutes: Int, expectedBase: Long? = null) {
-        val r = load(ctx, id, expectedBase) ?: return
-        Notifier.cancel(ctx, id)
-        val updated = r.copy(fireAt = System.currentTimeMillis() + minutes * 60_000L, nagCount = 0)
-        ReminderStore(ctx).upsert(updated)
-        Scheduler.schedule(ctx, updated)
-    }
+    fun snooze(ctx: Context, id: Long, minutes: Int, expectedBase: Long? = null) =
+        snoozeUntil(ctx, id, System.currentTimeMillis() + minutes * 60_000L, expectedBase)
 
     /** Morgen zur selben Uhrzeit wie der ursprüngliche Termin. */
     fun snoozeTomorrow(ctx: Context, id: Long, expectedBase: Long? = null) {
-        val r = load(ctx, id, expectedBase) ?: return
-        Notifier.cancel(ctx, id)
+        val r = ReminderStore(ctx).get(id) ?: return
         val zone = ZoneId.systemDefault()
         val time = Instant.ofEpochMilli(r.baseAt).atZone(zone).toLocalTime()
         val tomorrow = Instant.now().atZone(zone).plusDays(1).with(time)
-        val updated = r.copy(fireAt = tomorrow.toInstant().toEpochMilli(), nagCount = 0)
+        snoozeUntil(ctx, id, tomorrow.toInstant().toEpochMilli(), expectedBase)
+    }
+
+    /** Nächste Meldung zum Zeitpunkt [at]; danach wird wieder im Intervall genervt. */
+    fun snoozeUntil(ctx: Context, id: Long, at: Long, expectedBase: Long? = null) {
+        val r = load(ctx, id, expectedBase) ?: return
+        Notifier.cancel(ctx, id)
+        val updated = r.copy(fireAt = at, nagCount = 0)
         ReminderStore(ctx).upsert(updated)
         Scheduler.schedule(ctx, updated)
     }

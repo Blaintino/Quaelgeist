@@ -10,10 +10,12 @@ lokal auf dem Gerät, es gibt keine Google-Dienste, kein Netzwerk und keine Kont
   Höchstzahl an Wiederholungen (0 = unbegrenzt).
 - **Wiederkehrende Regeln**: täglich, wöchentlich (mit Wochentagen), monatlich am Datum,
   monatlich am n-ten Wochentag (z. B. jeden 3. Mittwoch), jeweils „alle N" Tage/Wochen/Monate.
-- **Schnelles Verschieben**: in der Benachrichtigung *Erledigt*, *+10 Min*, *+1 Std*;
-  in der App zusätzlich *Morgen* (gleiche Uhrzeit).
-- **Smartwatch**: Die Benachrichtigung samt Schaltflächen wird automatisch auf gekoppelte
-  Wear-OS-Uhren gespiegelt, du kannst also auch dort abhaken oder verschieben. Eine eigene
+- **Erledigt oder Verschieben**: In der Benachrichtigung stehen *Erledigt* und
+  *Verschieben…*. *Verschieben…* (und Tippen auf die Meldung) öffnet einen Bildschirm mit
+  10 Min, 30 Min, 1 Std, 3 Std, Morgen und frei wählbarer Uhrzeit. Bei gesperrtem Handy
+  erscheint dieser Bildschirm direkt als Vollbild-Alarm.
+- **Smartwatch / Fitnessband**: Die Meldung ist so gebaut, dass Begleit-Apps wie Huawei
+  Health sie weiterleiten (nicht „laufend“, jede Wiederholung als neue Meldung). Eine eigene
   Uhr-App gibt es nicht.
 
 ## Installieren und aktualisieren
@@ -52,11 +54,30 @@ Voraussetzungen fürs Handy: Android 8.0 (API 26) oder neuer.
 
 ## Wichtig für zuverlässiges Nagging
 
-- Benachrichtigungen erlauben (die App fragt beim ersten Start).
-- In den Android-Einstellungen für die App den Akku auf **„Nicht eingeschränkt"** stellen.
-  Samsung-Geräte stoppen Hintergrund-Apps sonst gern, siehe auch dontkillmyapp.com.
-- Im Tiefschlaf (Doze) darf Android sehr kurze Intervalle von unter etwa 5 bis 10 Minuten
-  strecken. Ein Intervall ab 5 Minuten ist verlässlich.
+Die App prüft das selbst: Zahnrad oben rechts → **Zuverlässigkeit**. Dort stehen alle
+Punkte mit Knopf direkt in die passende Systemeinstellung, plus ein **Test**, der in
+15 Sekunden eine Erinnerung auslöst und noch zweimal im Minutentakt nachhakt. Solange ein
+prüfbarer Punkt fehlt, zeigt die Hauptansicht einen roten Hinweis.
+
+Was die App von sich aus tut:
+
+- Alarme über `setAlarmClock` (wie eine Wecker-App): pünktlich auch im Tiefschlaf, keine
+  Streckung durch Android. Dafür zeigt die Statusleiste ein Wecker-Symbol, solange ein
+  Termin ansteht.
+- Meldung mit Kategorie *Alarm* (kommt bei „Nicht stören“ durch, solange Alarme erlaubt
+  sind), höchster Priorität, sichtbar auf dem Sperrbildschirm und als Vollbild-Alarm.
+- Zusätzlich eine direkte Alarm-Vibration, die auch im Lautlos-Modus läuft und nicht von
+  Herstellereinstellungen für Benachrichtigungs-Vibration gedämpft wird.
+- Jede Wiederholung wird als neue Meldung gepostet statt still aktualisiert, damit Ton,
+  Vibration und Weiterleitung an die Uhr jedes Mal greifen.
+- Die nächste Wiederholung wird gespeichert und geplant, *bevor* die Meldung erscheint.
+- Bei jedem App-Start, nach Neustart, Update und Zeitänderung werden alle Alarme neu
+  angemeldet.
+
+Was du einmalig einstellen musst (die Prüfliste führt hin): Benachrichtigungen erlauben,
+Akku „Nicht eingeschränkt“, Vollbild-Alarm erlauben, „App bei Nichtnutzung pausieren“ aus,
+bei Samsung NagMe zu den „Nie schlafenden Apps“, und in Huawei Health die Meldungen von
+NagMe für das Band einschalten.
 
 ## Aufbau
 
@@ -66,15 +87,18 @@ Voraussetzungen fürs Handy: Android 8.0 (API 26) oder neuer.
 | `Recurrence.kt` | Berechnung des nächsten Termins (Tests: `app/src/test/…/RecurrenceTest.kt`) |
 | `ReminderStore.kt` | lokale Speicherung (JSON in SharedPreferences) |
 | `Scheduler.kt` | Alarme über den AlarmManager |
-| `Notifier.kt` | Benachrichtigung mit Schaltflächen |
+| `Notifier.kt` | Benachrichtigung, Kanal, direkte Alarm-Vibration |
+| `NagActivity.kt` | Erledigt-/Verschieben-Bildschirm (auch Vollbild über dem Sperrbildschirm) |
+| `Reliability.kt` | Prüfliste „Zuverlässigkeit“ und Test-Erinnerung |
 | `Actions.kt` | Erledigt / Verschieben / Löschen |
 | `Receivers.kt` | Alarm, Schaltflächen, Neustart |
 | `Ui.kt`, `MainActivity.kt` | Oberfläche (Jetpack Compose) |
 
 ## Bekannte Einschränkungen
 
-- Android zeigt höchstens drei Schaltflächen in der Benachrichtigung; *Morgen* ist daher nur
-  in der App verfügbar.
+- Ob das Huawei Band 11 die Meldungen anzeigt, hängt auch von Huawei Health ab
+  (Weiterleitung oft nur bei ausgeschaltetem Handy-Bildschirm). Schaltflächen gibt es auf
+  dem Band nicht, abhaken geht nur am Handy.
 - Monatliche Wiederholung am 29.–31. fällt in kürzeren Monaten auf den letzten Tag des
   Monats, im Folgemonat aber wieder auf das ursprüngliche Datum.
 - Erledigte einmalige Erinnerungen bleiben in der Liste, bis du sie löschst.

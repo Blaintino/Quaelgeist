@@ -26,7 +26,28 @@ Cloud-Sessions haben weder Emulator noch Handy.
 
 ## Verhalten, das erhalten bleiben muss
 
-- `AlarmReceiver`: zeigt die Meldung und plant die nächste Wiederholung (`nagCount`, `fireAt`).
+- Zuverlässigkeit hat Vorrang vor neuen Funktionen (Wunsch des Nutzers: bei einer anderen
+  Erinnerungs-App kamen Meldungen und Vibration unzuverlässig und nie aufs Huawei Band 11).
+  Deshalb nicht zurückbauen ohne Rücksprache:
+  - `Scheduler` nutzt `setAlarmClock` (Wecker-Alarm), Fallback nur ohne Exakt-Berechtigung.
+  - Kanal `nag_alarm` (neue ID, weil Kanaleinstellungen nach dem Anlegen fest sind; der alte
+    Kanal `nag` wird gelöscht), Kategorie `ALARM` (durch „Nicht stören“), Vollbild-Intent auf
+    `NagActivity`, `VISIBILITY_PUBLIC`.
+  - Meldung nicht `ongoing` und vor jedem Nag `cancel` + `notify`: Huawei Health und
+    ähnliche Begleit-Apps spiegeln laufende oder nur aktualisierte Meldungen oft nicht.
+  - `Notifier.buzz`: zusätzliche direkte Vibration mit `USAGE_ALARM` (läuft auch lautlos und
+    aus dem Hintergrund).
+  - `ReminderStore` schreibt mit `commit()`, nicht `apply()` (Receiver-Prozess kann sofort
+    sterben).
+  - `MainActivity` ruft bei jedem Start `Scheduler.rescheduleAll` auf; das überspringt
+    überfällige Erinnerungen ohne erlaubte Wiederholung (`Reminder.canNag`), sonst klingeln
+    sie bei jedem Öffnen.
+  - `Reliability.kt`: Prüfliste mit Systemeinstellungs-Links und Test-Erinnerung; neue
+    Voraussetzungen dort ergänzen.
+- Benachrichtigung hat nur *Erledigt* und *Verschieben…*; Verschieben öffnet `NagActivity`
+  (Wunsch des Nutzers). Standard-Nag-Intervall 10 Minuten.
+- `AlarmReceiver`: plant zuerst die nächste Wiederholung (`nagCount`, `fireAt`), zeigt dann die
+  Meldung.
   Nach der letzten erlaubten Meldung rücken Serien zum nächsten Termin vor, einmalige bleiben
   überfällig.
 - `Actions`: Aktionen aus alten Benachrichtigungen werden ignoriert, wenn `baseAt` nicht mehr
@@ -50,12 +71,10 @@ Cloud-Sessions haben weder Emulator noch Handy.
   Activity-Compose und Coroutines.
 - Oberfläche und Texte sind deutsch.
 - Die App ist für den privaten Gebrauch gedacht (`USE_EXACT_ALARM` ist deshalb gesetzt).
-- Eine eigene Wear-OS-App ist nicht vorgesehen: Die Benachrichtigung samt Schaltflächen wird
-  automatisch auf die Uhr gespiegelt.
+- Eine eigene Uhr-App ist nicht vorgesehen. Der Nutzer trägt ein Huawei Band 11 (kein
+  Wear OS): Meldungen kommen nur über Huawei Health an, Schaltflächen gibt es dort nicht.
 
 ## Mögliche nächste Schritte (nur auf Nachfrage)
 
 - Eigenes App-Icon statt `ic_popup_reminder`.
-- Hinweis in der App, wenn die Akku-Optimierung das Nagging stören könnte.
 - Backup/Export der Erinnerungen als JSON.
-- Dritte Schaltfläche in der Benachrichtigung ersetzbar machen (z. B. „Morgen" statt „+1 Std").

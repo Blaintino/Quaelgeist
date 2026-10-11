@@ -1,5 +1,6 @@
 package de.nagme
 
+import android.app.AlarmManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -13,9 +14,9 @@ class AlarmReceiver : BroadcastReceiver() {
         val r = store.get(id) ?: return
         if (r.done) return
 
-        Notifier.show(ctx, r)
-
-        val canNag = r.nagIntervalMin > 0 && (r.maxNags == 0 || r.nagCount < r.maxNags)
+        // Zuerst die nächste Wiederholung sichern – falls beim Anzeigen etwas schiefgeht,
+        // reißt die Nag-Kette trotzdem nicht ab.
+        val canNag = r.canNag
         val updated = if (canNag) {
             r.copy(
                 nagCount = r.nagCount + 1,
@@ -28,6 +29,9 @@ class AlarmReceiver : BroadcastReceiver() {
         }
         if (updated != r) store.upsert(updated)
         if (canNag || updated.fireAt != r.fireAt) Scheduler.schedule(ctx, updated)
+
+        runCatching { Notifier.show(ctx, r) }
+        runCatching { Notifier.buzz(ctx) }
     }
 }
 
@@ -39,13 +43,11 @@ class ActionReceiver : BroadcastReceiver() {
         val base = intent.getLongExtra(Actions.EXTRA_BASE, -1).takeIf { it >= 0 }
         when (intent.action) {
             Actions.DONE -> Actions.markDone(ctx, id, base)
-            Actions.SNOOZE -> Actions.snooze(ctx, id, intent.getIntExtra(Actions.EXTRA_MIN, 10), base)
-            Actions.TOMORROW -> Actions.snoozeTomorrow(ctx, id, base)
         }
     }
 }
 
-/** Plant nach Neustart, App-Update oder Zeitumstellung alle Alarme neu. */
+/** Plant nach Neustart, App-Update, Zeitumstellung oder neuer Alarm-Berechtigung alle Alarme neu. */
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(ctx: Context, intent: Intent) {
         // Exportiert (für die System-Broadcasts) – fremde Intents ignorieren.
@@ -59,6 +61,7 @@ class BootReceiver : BroadcastReceiver() {
             Intent.ACTION_MY_PACKAGE_REPLACED,
             Intent.ACTION_TIME_CHANGED,
             Intent.ACTION_TIMEZONE_CHANGED,
+            AlarmManager.ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED,
         )
     }
 }
