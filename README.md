@@ -36,22 +36,14 @@ lokal auf dem Gerät, es gibt keine Google-Dienste, kein Netzwerk und keine Kont
 
 ## Installieren und aktualisieren
 
-Gleiches Prinzip wie `android-vorlage` im Monorepo `Claude_Code_Projekte` und der
-AntennaPod-Fork: Jeder Push auf `main` baut per GitHub Actions eine signierte APK und
-legt ein GitHub Release `quaelgeist-v<Laufnummer>` an; installiert und aktualisiert wird über
-[Obtainium](https://obtainium.imranr.dev/).
+Voraussetzung: Android 8.0 oder neuer.
 
-Einmalige Einrichtung:
-
-1. **Signatur-Secrets hinterlegen** (*Settings → Secrets and variables → Actions*),
-   gleiche Namen und gleicher Keystore wie bei `android-vorlage`:
-   `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`,
-   `ANDROID_KEY_PASSWORD`. Ohne Secrets baut der Workflow nur eine Debug-APK als
-   Artefakt (kein Release), über die keine Updates möglich sind.
-2. **Obtainium:** App hinzufügen mit der URL dieses Repos; unter „Filter release titles
-   by regular expression" `^quaelgeist-v` eintragen. Das Repo ist öffentlich, ein
-   GitHub-Token ist nicht nötig. Alternativ die APK einfach unter *Releases*
-   herunterladen und installieren.
+- **Direkt:** Die neueste `Quaelgeist-….apk` unter
+  [Releases](https://github.com/Blaintino/Quaelgeist/releases/latest) herunterladen und
+  installieren (Android fragt einmalig, ob der Browser Apps installieren darf).
+- **Mit automatischen Updates über [Obtainium](https://obtainium.imranr.dev/):** App
+  hinzufügen mit der URL `https://github.com/Blaintino/Quaelgeist`, unter „Filter release
+  titles by regular expression“ `^quaelgeist-v` eintragen. Ein GitHub-Token ist nicht nötig.
 
 ## Lokal bauen
 
@@ -64,9 +56,7 @@ JDK 21 + Android SDK (`local.properties` mit `sdk.dir=…` oder `ANDROID_HOME`),
 ```
 
 Debug-Builds haben die App-ID `de.quaelgeist.debug` und heißen „Quälgeist (Debug)", damit sie
-neben der per Obtainium installierten Release-Version laufen können.
-
-Voraussetzungen fürs Handy: Android 8.0 (API 26) oder neuer.
+neben der installierten Release-Version laufen können.
 
 ## Wichtig für zuverlässiges Nagging
 
