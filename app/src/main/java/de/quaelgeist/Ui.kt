@@ -169,7 +169,7 @@ fun App() {
         )
     }
     var now by remember { mutableStateOf(System.currentTimeMillis()) }
-    var tab by rememberSaveable { mutableIntStateOf(TAB_RECURRING) }
+    var tab by rememberSaveable { mutableIntStateOf(TAB_ONCE) } // Start-Tab: Einmalig
     var editing by remember { mutableStateOf<Reminder?>(null) }
     var reopening by remember { mutableStateOf<Reminder?>(null) }
     var creatingTitle by remember { mutableStateOf<String?>(null) } // null = kein Dialog
