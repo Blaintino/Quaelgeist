@@ -37,8 +37,10 @@ Cloud-Sessions haben weder Emulator noch Handy.
     Nutzers: Angst vor versehentlichem Abhaken/Verschieben ohne Entsperren).
   - Meldung nicht `ongoing` und vor jedem Nag `cancel` + `notify`: Huawei Health und
     ähnliche Begleit-Apps spiegeln laufende oder nur aktualisierte Meldungen oft nicht.
-  - `Notifier.buzz`: die einzige Vibration, genau ein Impuls pro Meldung (Wunsch des Nutzers),
-    mit `USAGE_ALARM` (läuft auch lautlos und aus dem Hintergrund).
+  - `Notifier.buzz`: die einzige Vibration pro Meldung (Kanal vibriert nicht, sonst doppelt),
+    Muster dreimal lang (`BUZZ_PATTERN`), mit `USAGE_ALARM` (läuft auch lautlos und aus dem
+    Hintergrund). Ein einzelner 1-s-Impuls war zu schwach: Der Nutzer hat ihn beim Benutzen
+    des Handys übersehen (per `adb shell dumpsys vibrator_manager` belegt, 2026-10-12).
   - Gleichzeitig fällige Erinnerungen: jede bekommt eine eigene Meldung (eigene ID, einzeln
     bedienbar), aber nur die erste innerhalb von 15 s klingelt und vibriert
     (`Notifier.claimAlert`), die übrigen werden mit `setSilent` gepostet.

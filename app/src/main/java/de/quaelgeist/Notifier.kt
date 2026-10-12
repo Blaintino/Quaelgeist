@@ -29,8 +29,11 @@ object Notifier {
     const val CHANNEL = "nag_alert"
     private val OLD_CHANNELS = listOf("nag", "nag_alarm")
 
-    /** Länge der einen Vibration pro Meldung. */
-    private const val BUZZ_MS = 1000L
+    /**
+     * Vibrationsmuster pro Meldung: dreimal lang (gut 3 s). Ein einzelner 1-s-Impuls ging beim
+     * Benutzen des Handys unter (per adb geprüft, 2026-10-12).
+     */
+    private val BUZZ_PATTERN = longArrayOf(0, 800, 400, 800, 400, 800)
 
     /**
      * Werden mehrere Erinnerungen innerhalb dieses Abstands fällig (gleiche Uhrzeit oder
@@ -157,13 +160,13 @@ object Notifier {
     }
 
     /**
-     * Vibriert einmal direkt als Alarm-Vibration. Die läuft auch im Lautlos-Modus und wenn
+     * Vibriert direkt als Alarm-Vibration ([BUZZ_PATTERN]); die einzige Vibration pro Meldung. Die läuft auch im Lautlos-Modus und wenn
      * der Hersteller die Vibration von Benachrichtigungen dämpft – das war bei anderen
      * Erinnerungs-Apps der Grund für unzuverlässigen Vibrationsalarm.
      */
     @Suppress("DEPRECATION")
     fun buzz(ctx: Context) {
-        val effect = VibrationEffect.createOneShot(BUZZ_MS, VibrationEffect.DEFAULT_AMPLITUDE)
+        val effect = VibrationEffect.createWaveform(BUZZ_PATTERN, -1)
         val vibrator = if (Build.VERSION.SDK_INT >= 31) {
             ctx.getSystemService(VibratorManager::class.java).defaultVibrator
         } else {

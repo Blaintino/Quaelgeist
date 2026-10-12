@@ -72,7 +72,7 @@ Was die App von sich aus tut:
 - Meldung mit Kategorie *Alarm* (kommt bei „Nicht stören“ durch, solange Alarme erlaubt
   sind), höchster Priorität und sichtbar auf dem Sperrbildschirm. Bewusst kein Vollbild-Alarm,
   damit der Erledigt-/Verschieben-Bildschirm nicht ohne Entsperren bedienbar ist.
-- Eine einzelne direkte Alarm-Vibration pro Meldung (der Kanal selbst vibriert nicht), die
+- Eine direkte Alarm-Vibration pro Meldung, dreimal lang (der Kanal selbst vibriert nicht), die
   auch im Lautlos-Modus läuft und nicht von Herstellereinstellungen für
   Benachrichtigungs-Vibration gedämpft wird.
 - Jede Wiederholung wird als neue Meldung gepostet statt still aktualisiert, damit Ton,
