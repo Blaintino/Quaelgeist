@@ -70,6 +70,9 @@ Cloud-Sessions haben weder Emulator noch Handy.
   Starttermin auf den ersten ausgewählten Tag, falls der gewählte Starttag selbst nicht
   dabei ist.
 - `BootReceiver` plant nach Neustart, App-Update und Zeitänderung alle Alarme neu.
+- Tabs in `App()`: `TAB_RECURRING` (offen, `repeatType != NONE`), `TAB_ONCE` (offen,
+  einmalig), `TAB_ARCHIVE` (`done`). `save()` wechselt in den Tab der gespeicherten
+  Erinnerung; + im Tab „Wiederkehrend“ startet den Editor mit `prefillType = DAILY`.
 - Archiv: erledigt = `done` (nur einmalige; Serien rücken beim Abhaken vor). `doneAt` wird in
   `Actions.markDone` gesetzt, alte Einträge haben 0 und werden im Archiv nach `baseAt`
   sortiert. „Wieder öffnen“ ist kein eigener Datenpfad, sondern der Editor mit einer Kopie

@@ -160,6 +160,8 @@ fun App() {
     val version by ReminderStore.version.collectAsState()
     val all = remember(version) { store.all() }
     val open = remember(all) { all.filter { !it.done }.sortedBy { it.fireAt } }
+    val recurring = remember(open) { open.filter { it.repeatType != RepeatType.NONE } }
+    val once = remember(open) { open.filter { it.repeatType == RepeatType.NONE } }
     // Neueste zuerst; alte Einträge ohne Erledigt-Zeitpunkt nach Termin.
     val archive = remember(all) {
         all.filter { it.done }.sortedWith(
@@ -167,7 +169,7 @@ fun App() {
         )
     }
     var now by remember { mutableStateOf(System.currentTimeMillis()) }
-    var tab by rememberSaveable { mutableIntStateOf(0) }
+    var tab by rememberSaveable { mutableIntStateOf(TAB_RECURRING) }
     var editing by remember { mutableStateOf<Reminder?>(null) }
     var reopening by remember { mutableStateOf<Reminder?>(null) }
     var creatingTitle by remember { mutableStateOf<String?>(null) } // null = kein Dialog
@@ -181,7 +183,7 @@ fun App() {
     LaunchedEffect(newTitleRequest) {
         newTitleRequest?.let {
             showReliability = false
-            tab = 0
+            tab = TAB_ONCE
             creatingTitle = it
             MainActivity.newTitleRequest.value = null
         }
@@ -207,6 +209,8 @@ fun App() {
         Notifier.cancel(ctx, r.id)
         store.upsert(r)
         Scheduler.schedule(ctx, r)
+        // Zum Tab wechseln, in dem die gespeicherte Erinnerung jetzt steht.
+        tab = if (r.repeatType == RepeatType.NONE) TAB_ONCE else TAB_RECURRING
     }
 
     if (showReliability) {
@@ -219,7 +223,7 @@ fun App() {
 
     Scaffold(
         floatingActionButton = {
-            if (tab == 0) {
+            if (tab != TAB_ARCHIVE) {
                 FloatingActionButton(onClick = { creatingTitle = "" }) {
                     Icon(Icons.Default.Add, contentDescription = "Neue Erinnerung")
                 }
@@ -260,21 +264,22 @@ fun App() {
                 }
             }
             PrimaryTabRow(selectedTabIndex = tab, modifier = Modifier.padding(top = 8.dp)) {
-                Tab(
-                    selected = tab == 0,
-                    onClick = { tab = 0 },
-                    text = { Text("Offen (${open.size})") },
-                )
-                Tab(
-                    selected = tab == 1,
-                    onClick = { tab = 1 },
-                    text = { Text("Archiv (${archive.size})") },
-                )
+                TabLabel("Wiederkehrend", recurring.size, tab == TAB_RECURRING) {
+                    tab = TAB_RECURRING
+                }
+                TabLabel("Einmalig", once.size, tab == TAB_ONCE) { tab = TAB_ONCE }
+                TabLabel("Archiv", archive.size, tab == TAB_ARCHIVE) { tab = TAB_ARCHIVE }
             }
-            if (tab == 0) {
-                if (open.isEmpty()) {
+            if (tab != TAB_ARCHIVE) {
+                val list = if (tab == TAB_RECURRING) recurring else once
+                if (list.isEmpty()) {
                     Text(
-                        "Keine offenen Erinnerungen. Tippe auf +, um eine anzulegen.",
+                        if (tab == TAB_RECURRING) {
+                            "Keine wiederkehrenden Erinnerungen, z. B. für Medikamente. " +
+                                "Tippe auf +, um eine anzulegen."
+                        } else {
+                            "Keine offenen Aufgaben. Tippe auf + oder nutze das Widget."
+                        },
                         modifier = Modifier.padding(16.dp),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -283,7 +288,7 @@ fun App() {
                     contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 96.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    items(open, key = { it.id }) { r ->
+                    items(list, key = { it.id }) { r ->
                         ReminderCard(r, now, onEdit = { editing = r })
                     }
                 }
@@ -318,6 +323,8 @@ fun App() {
         EditDialog(
             initial = null,
             prefillTitle = prefill,
+            // Aus dem Tab „Wiederkehrend“ heraus: gleich mit täglicher Wiederholung starten.
+            prefillType = if (tab == TAB_RECURRING) RepeatType.DAILY else RepeatType.NONE,
             onDismiss = { creatingTitle = null },
             onSave = { save(it); creatingTitle = null },
         )
@@ -336,7 +343,7 @@ fun App() {
             initial = archived.copy(baseAt = at, fireAt = at, anchorAt = at, done = false),
             heading = "Wieder öffnen",
             onDismiss = { reopening = null },
-            onSave = { save(it); reopening = null; tab = 0 },
+            onSave = { save(it); reopening = null },
         )
     }
     if (confirmClear) {
@@ -354,6 +361,24 @@ fun App() {
             },
         )
     }
+}
+
+private const val TAB_RECURRING = 0
+private const val TAB_ONCE = 1
+private const val TAB_ARCHIVE = 2
+
+@Composable
+private fun TabLabel(label: String, count: Int, selected: Boolean, onClick: () -> Unit) {
+    Tab(
+        selected = selected,
+        onClick = onClick,
+        text = {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(label, maxLines = 1)
+                Text("$count", style = MaterialTheme.typography.labelSmall)
+            }
+        },
+    )
 }
 
 @Composable
@@ -456,12 +481,13 @@ private fun EditDialog(
     onDismiss: () -> Unit,
     onSave: (Reminder) -> Unit,
     prefillTitle: String = "",
+    prefillType: RepeatType = RepeatType.NONE,
     heading: String? = null,
 ) {
     val ctx = LocalContext.current
     var title by remember { mutableStateOf(initial?.title ?: prefillTitle) }
     var at by remember { mutableStateOf(initial?.baseAt ?: defaultAt()) }
-    var type by remember { mutableStateOf(initial?.repeatType ?: RepeatType.NONE) }
+    var type by remember { mutableStateOf(initial?.repeatType ?: prefillType) }
     var every by remember { mutableStateOf((initial?.repeatEvery ?: 1).toString()) }
     var mask by remember { mutableStateOf(initial?.weekdayMask ?: 0) }
     var nag by remember { mutableStateOf((initial?.nagIntervalMin ?: 10).toString()) }

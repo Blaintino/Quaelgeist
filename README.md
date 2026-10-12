@@ -19,10 +19,13 @@ lokal auf dem Gerät, es gibt keine Google-Dienste, kein Netzwerk und keine Kont
 - **Mehrere Erinnerungen gleichzeitig**: Jede bekommt ihre eigene Meldung und lässt sich
   einzeln abhaken oder verschieben. Klingeln und vibrieren tut aber nur die erste; die übrigen
   kommen still dazu.
+- **Drei Tabs**: *Wiederkehrend* (z. B. Medikamente), *Einmalig* (Aufgaben) und *Archiv*.
+  Ein neues + im Tab *Wiederkehrend* startet gleich mit täglicher Wiederholung; nach dem
+  Speichern springt die App in den Tab, in dem die Erinnerung steht.
 - **Archiv**: Erledigte einmalige Erinnerungen wandern in den Tab *Archiv* (mit
   Erledigt-Datum, neueste zuerst). Dort *Wieder öffnen* (mit neuem Termin), einzeln löschen
   oder *Archiv leeren*. Wiederkehrende Erinnerungen springen beim Abhaken zum nächsten
-  Termin und bleiben unter *Offen*.
+  Termin und bleiben unter *Wiederkehrend*.
 - **Schnelleingabe-Widget**: Homescreen lange drücken → *Widgets* → *Quälgeist*. Ein Tipp
   öffnet ein kleines Fenster mit Tastatur: Titel tippen, dann *In 1 Std*, *Heute 18:00*,
   *Morgen 8:00* oder *Uhrzeit…* – gespeichert mit 10-Minuten-Nagging, ohne Wiederholung.
