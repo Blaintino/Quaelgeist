@@ -23,7 +23,8 @@
 
         <activity
             android:name=".MainActivity"
-            android:exported="true">
+            android:exported="true"
+            android:launchMode="singleTop">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -37,6 +38,28 @@
             android:excludeFromRecents="true"
             android:launchMode="singleTop"
             android:taskAffinity="de.quaelgeist.nag" />
+
+        <!-- Schnelleingabe aus dem Homescreen-Widget. -->
+        <activity
+            android:name=".QuickAddActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:noHistory="true"
+            android:taskAffinity="de.quaelgeist.quickadd"
+            android:theme="@style/Theme.Quaelgeist.Translucent"
+            android:windowSoftInputMode="stateAlwaysVisible|adjustResize" />
+
+        <receiver
+            android:name=".QuickAddWidget"
+            android:exported="false"
+            android:label="@string/widget_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_quick_add_info" />
+        </receiver>
 
         <receiver
             android:name=".AlarmReceiver"

@@ -37,6 +37,12 @@ class ReminderStore(context: Context) {
         save(all().filter { it.id != id })
     }
 
+    /** Entfernt alle erledigten Erinnerungen (Archiv leeren). */
+    @Synchronized
+    fun deleteDone() {
+        save(all().filter { !it.done })
+    }
+
     @SuppressLint("ApplySharedPref")
     private fun save(list: List<Reminder>) {
         val arr = JSONArray()
@@ -70,6 +76,7 @@ private fun Reminder.toJson() = JSONObject().apply {
     put("maxNags", maxNags)
     put("nagCount", nagCount)
     put("done", done)
+    put("doneAt", doneAt)
 }
 
 private fun JSONObject.toReminder() = Reminder(
@@ -86,4 +93,5 @@ private fun JSONObject.toReminder() = Reminder(
     maxNags = optInt("maxNags", 0),
     nagCount = optInt("nagCount", 0),
     done = optBoolean("done", false),
+    doneAt = optLong("doneAt", 0),
 )

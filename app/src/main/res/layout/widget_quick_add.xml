@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Schnelleingabe-Widget: ein großer Knopf. Klick öffnet QuickAddActivity. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_bg"
+    android:padding="8dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:drawableStart="@android:drawable/ic_input_add"
+        android:drawablePadding="8dp"
+        android:drawableTint="@color/widget_fg"
+        android:gravity="center_vertical"
+        android:text="@string/widget_label"
+        android:textColor="@color/widget_fg"
+        android:textSize="16sp"
+        android:textStyle="bold" />
+</FrameLayout>

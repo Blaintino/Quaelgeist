@@ -1,5 +1,6 @@
 package de.quaelgeist
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -13,11 +14,22 @@ class MainActivity : ComponentActivity() {
         Notifier.ensureChannel(this)
         // Repariert verlorene Alarme (z. B. nach „Stopp erzwingen" oder Samsung-Tiefschlaf).
         Scheduler.rescheduleAll(this)
+        if (savedInstanceState == null) handleIntent(intent)
         setContent {
             NagTheme {
                 App()
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleIntent(intent)
+    }
+
+    private fun handleIntent(intent: Intent?) {
+        intent?.getStringExtra(EXTRA_NEW_TITLE)?.let { newTitleRequest.value = it }
     }
 
     override fun onResume() {
@@ -27,6 +39,10 @@ class MainActivity : ComponentActivity() {
     }
 
     companion object {
+        /** Öffnet den Editor für eine neue Erinnerung mit diesem Titel (aus der Schnelleingabe). */
+        const val EXTRA_NEW_TITLE = "newTitle"
+
         val resumeTick = MutableStateFlow(0)
+        val newTitleRequest = MutableStateFlow<String?>(null)
     }
 }

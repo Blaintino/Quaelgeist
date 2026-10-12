@@ -70,6 +70,16 @@ Cloud-Sessions haben weder Emulator noch Handy.
   Starttermin auf den ersten ausgewählten Tag, falls der gewählte Starttag selbst nicht
   dabei ist.
 - `BootReceiver` plant nach Neustart, App-Update und Zeitänderung alle Alarme neu.
+- Archiv: erledigt = `done` (nur einmalige; Serien rücken beim Abhaken vor). `doneAt` wird in
+  `Actions.markDone` gesetzt, alte Einträge haben 0 und werden im Archiv nach `baseAt`
+  sortiert. „Wieder öffnen“ ist kein eigener Datenpfad, sondern der Editor mit einer Kopie
+  (`done = false`, neuer Termin als `baseAt`/`fireAt`/`anchorAt`).
+- Schnelleingabe (`QuickAdd.kt`): Widget mit klassischen `RemoteViews` (bewusst kein Glance,
+  keine neue Abhängigkeit), Klick öffnet `QuickAddActivity` (durchsichtiges Theme
+  `Theme.Quaelgeist.Translucent`, nur ein Dialog). Zeitknöpfe speichern sofort mit
+  Standardwerten; „Mehr Optionen“ startet `MainActivity` mit `EXTRA_NEW_TITLE`
+  (`singleTop`, `newTitleRequest`), die den Editor vorbefüllt öffnet. Zeitberechnung in
+  `QuickTimes` (reine Funktionen, `QuickTimesTest`).
 
 ## Rahmenbedingungen
 
@@ -90,3 +100,6 @@ Cloud-Sessions haben weder Emulator noch Handy.
 
 - Eigenes App-Icon statt `ic_popup_reminder`.
 - Backup/Export der Erinnerungen als JSON.
+- Medikamente: erschwertes Abhaken (lange drücken/Rückfrage/QR-Code), Einnahme-Verlauf,
+  Rückgängig nach versehentlichem Abhaken.
+- Ruhezeiten (nachts pausieren), zwei Dringlichkeitsstufen.

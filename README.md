@@ -19,6 +19,14 @@ lokal auf dem Gerät, es gibt keine Google-Dienste, kein Netzwerk und keine Kont
 - **Mehrere Erinnerungen gleichzeitig**: Jede bekommt ihre eigene Meldung und lässt sich
   einzeln abhaken oder verschieben. Klingeln und vibrieren tut aber nur die erste; die übrigen
   kommen still dazu.
+- **Archiv**: Erledigte einmalige Erinnerungen wandern in den Tab *Archiv* (mit
+  Erledigt-Datum, neueste zuerst). Dort *Wieder öffnen* (mit neuem Termin), einzeln löschen
+  oder *Archiv leeren*. Wiederkehrende Erinnerungen springen beim Abhaken zum nächsten
+  Termin und bleiben unter *Offen*.
+- **Schnelleingabe-Widget**: Homescreen lange drücken → *Widgets* → *Quälgeist*. Ein Tipp
+  öffnet ein kleines Fenster mit Tastatur: Titel tippen, dann *In 1 Std*, *Heute 18:00*,
+  *Morgen 8:00* oder *Uhrzeit…* – gespeichert mit 10-Minuten-Nagging, ohne Wiederholung.
+  *Mehr Optionen* öffnet den vollen Editor mit dem getippten Titel.
 - **Smartwatch / Fitnessband**: Die Meldung ist so gebaut, dass Begleit-Apps wie Huawei
   Health sie weiterleiten (nicht „laufend“, jede Wiederholung als neue Meldung). Eine eigene
   Uhr-App gibt es nicht.
@@ -99,7 +107,9 @@ Quälgeist für das Band einschalten.
 | `Reliability.kt` | Prüfliste „Zuverlässigkeit“ und Test-Erinnerung |
 | `Actions.kt` | Erledigt / Verschieben / Löschen |
 | `Receivers.kt` | Alarm, Schaltflächen, Neustart |
-| `Ui.kt`, `MainActivity.kt` | Oberfläche (Jetpack Compose) |
+| `Ui.kt`, `MainActivity.kt` | Oberfläche (Jetpack Compose): Tabs *Offen* / *Archiv*, Editor |
+| `QuickAdd.kt` | Homescreen-Widget und Schnelleingabe-Fenster |
+| `QuickTimes.kt` | Zeitvorschläge der Schnelleingabe (Tests: `QuickTimesTest.kt`) |
 
 ## Bekannte Einschränkungen
 
@@ -108,7 +118,7 @@ Quälgeist für das Band einschalten.
   dem Band nicht, abhaken geht nur am Handy.
 - Monatliche Wiederholung am 29.–31. fällt in kürzeren Monaten auf den letzten Tag des
   Monats, im Folgemonat aber wieder auf das ursprüngliche Datum.
-- Erledigte einmalige Erinnerungen bleiben in der Liste, bis du sie löschst.
+- Das Archiv räumt sich nicht selbst auf; *Archiv leeren* löscht alles darin.
 
 ## Lizenz
 

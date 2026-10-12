@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="Theme.Quaelgeist" parent="android:Theme.Material.Light.NoActionBar" />
+    <!-- Schnelleingabe aus dem Widget: nur der Dialog, Homescreen bleibt sichtbar. -->
+    <style name="Theme.Quaelgeist.Translucent" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:backgroundDimEnabled">true</item>
+        <item name="android:windowAnimationStyle">@android:style/Animation.Dialog</item>
+    </style>
 </resources>

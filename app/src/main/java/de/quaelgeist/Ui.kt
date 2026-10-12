@@ -41,7 +41,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.dynamicDarkColorScheme
@@ -52,8 +54,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -99,7 +103,7 @@ private fun fmt(ms: Long): String =
             .withLocale(Locale.getDefault()),
     )
 
-private fun defaultAt(): Long =
+internal fun defaultAt(): Long =
     ZonedDateTime.now(zone).plusHours(1).withMinute(0).withSecond(0).withNano(0)
         .toInstant().toEpochMilli()
 
@@ -154,15 +158,34 @@ fun App() {
     val ctx = LocalContext.current
     val store = remember { ReminderStore(ctx) }
     val version by ReminderStore.version.collectAsState()
-    val reminders = remember(version) {
-        store.all().sortedWith(compareBy<Reminder> { it.done }.thenBy { it.fireAt })
+    val all = remember(version) { store.all() }
+    val open = remember(all) { all.filter { !it.done }.sortedBy { it.fireAt } }
+    // Neueste zuerst; alte Einträge ohne Erledigt-Zeitpunkt nach Termin.
+    val archive = remember(all) {
+        all.filter { it.done }.sortedWith(
+            compareByDescending<Reminder> { it.doneAt }.thenByDescending { it.baseAt },
+        )
     }
     var now by remember { mutableStateOf(System.currentTimeMillis()) }
+    var tab by rememberSaveable { mutableIntStateOf(0) }
     var editing by remember { mutableStateOf<Reminder?>(null) }
-    var creating by remember { mutableStateOf(false) }
+    var reopening by remember { mutableStateOf<Reminder?>(null) }
+    var creatingTitle by remember { mutableStateOf<String?>(null) } // null = kein Dialog
+    var confirmClear by remember { mutableStateOf(false) }
     var showReliability by remember { mutableStateOf(false) }
     val tick by MainActivity.resumeTick.collectAsState()
     val reliable = remember(tick, showReliability) { Reliability.allOk(ctx) }
+
+    // „Mehr Optionen" aus dem Schnelleingabe-Widget: Editor mit dem getippten Titel öffnen.
+    val newTitleRequest by MainActivity.newTitleRequest.collectAsState()
+    LaunchedEffect(newTitleRequest) {
+        newTitleRequest?.let {
+            showReliability = false
+            tab = 0
+            creatingTitle = it
+            MainActivity.newTitleRequest.value = null
+        }
+    }
 
     val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
     LaunchedEffect(Unit) {
@@ -196,8 +219,10 @@ fun App() {
 
     Scaffold(
         floatingActionButton = {
-            FloatingActionButton(onClick = { creating = true }) {
-                Icon(Icons.Default.Add, contentDescription = "Neue Erinnerung")
+            if (tab == 0) {
+                FloatingActionButton(onClick = { creatingTitle = "" }) {
+                    Icon(Icons.Default.Add, contentDescription = "Neue Erinnerung")
+                }
             }
         },
     ) { padding ->
@@ -234,29 +259,67 @@ fun App() {
                     }
                 }
             }
-            if (reminders.isEmpty()) {
-                Text(
-                    "Noch keine Erinnerungen. Tippe auf +, um eine anzulegen.",
-                    modifier = Modifier.padding(16.dp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+            PrimaryTabRow(selectedTabIndex = tab, modifier = Modifier.padding(top = 8.dp)) {
+                Tab(
+                    selected = tab == 0,
+                    onClick = { tab = 0 },
+                    text = { Text("Offen (${open.size})") },
+                )
+                Tab(
+                    selected = tab == 1,
+                    onClick = { tab = 1 },
+                    text = { Text("Archiv (${archive.size})") },
                 )
             }
-            LazyColumn(
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 96.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                items(reminders, key = { it.id }) { r ->
-                    ReminderCard(r, now, onEdit = { editing = r })
+            if (tab == 0) {
+                if (open.isEmpty()) {
+                    Text(
+                        "Keine offenen Erinnerungen. Tippe auf +, um eine anzulegen.",
+                        modifier = Modifier.padding(16.dp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                LazyColumn(
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 96.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    items(open, key = { it.id }) { r ->
+                        ReminderCard(r, now, onEdit = { editing = r })
+                    }
+                }
+            } else {
+                if (archive.isEmpty()) {
+                    Text(
+                        "Hier landen erledigte einmalige Erinnerungen.",
+                        modifier = Modifier.padding(16.dp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                LazyColumn(
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    if (archive.isNotEmpty()) {
+                        item {
+                            OutlinedButton(onClick = { confirmClear = true }) {
+                                Text("Archiv leeren")
+                            }
+                        }
+                    }
+                    items(archive, key = { it.id }) { r ->
+                        ArchiveCard(r, onReopen = { reopening = r })
+                    }
                 }
             }
         }
     }
 
-    if (creating) {
+    creatingTitle?.let { prefill ->
         EditDialog(
             initial = null,
-            onDismiss = { creating = false },
-            onSave = { save(it); creating = false },
+            prefillTitle = prefill,
+            onDismiss = { creatingTitle = null },
+            onSave = { save(it); creatingTitle = null },
         )
     }
     editing?.let { current ->
@@ -265,6 +328,62 @@ fun App() {
             onDismiss = { editing = null },
             onSave = { save(it); editing = null },
         )
+    }
+    reopening?.let { archived ->
+        // Wieder öffnen = bearbeiten mit neuem Termin; Speichern macht sie wieder offen.
+        val at = defaultAt()
+        EditDialog(
+            initial = archived.copy(baseAt = at, fireAt = at, anchorAt = at, done = false),
+            heading = "Wieder öffnen",
+            onDismiss = { reopening = null },
+            onSave = { save(it); reopening = null; tab = 0 },
+        )
+    }
+    if (confirmClear) {
+        AlertDialog(
+            onDismissRequest = { confirmClear = false },
+            title = { Text("Archiv leeren?") },
+            text = { Text("Alle ${archive.size} erledigten Erinnerungen werden endgültig gelöscht.") },
+            confirmButton = {
+                TextButton(onClick = { Actions.clearArchive(ctx); confirmClear = false }) {
+                    Text("Löschen")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmClear = false }) { Text("Abbrechen") }
+            },
+        )
+    }
+}
+
+@Composable
+private fun ArchiveCard(r: Reminder, onReopen: () -> Unit) {
+    val ctx = LocalContext.current
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 4.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    r.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(1f),
+                )
+                IconButton(onClick = { Actions.delete(ctx, r.id) }) {
+                    Icon(Icons.Default.Delete, contentDescription = "Löschen")
+                }
+            }
+            Text(
+                if (r.doneAt > 0) "Erledigt am ${fmt(r.doneAt)}" else "Erledigt",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                "War fällig: ${fmt(r.baseAt)}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            TextButton(onClick = onReopen, contentPadding = PaddingValues(horizontal = 0.dp)) {
+                Text("Wieder öffnen")
+            }
+        }
     }
 }
 
@@ -332,9 +451,15 @@ private fun QuickButton(label: String, modifier: Modifier, onClick: () -> Unit) 
 // ---------------------------------------------------------------- Bearbeiten
 
 @Composable
-private fun EditDialog(initial: Reminder?, onDismiss: () -> Unit, onSave: (Reminder) -> Unit) {
+private fun EditDialog(
+    initial: Reminder?,
+    onDismiss: () -> Unit,
+    onSave: (Reminder) -> Unit,
+    prefillTitle: String = "",
+    heading: String? = null,
+) {
     val ctx = LocalContext.current
-    var title by remember { mutableStateOf(initial?.title ?: "") }
+    var title by remember { mutableStateOf(initial?.title ?: prefillTitle) }
     var at by remember { mutableStateOf(initial?.baseAt ?: defaultAt()) }
     var type by remember { mutableStateOf(initial?.repeatType ?: RepeatType.NONE) }
     var every by remember { mutableStateOf((initial?.repeatEvery ?: 1).toString()) }
@@ -348,7 +473,9 @@ private fun EditDialog(initial: Reminder?, onDismiss: () -> Unit, onSave: (Remin
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (initial == null) "Neue Erinnerung" else "Erinnerung bearbeiten") },
+        title = {
+            Text(heading ?: if (initial == null) "Neue Erinnerung" else "Erinnerung bearbeiten")
+        },
         text = {
             Column(
                 Modifier.verticalScroll(rememberScrollState()),

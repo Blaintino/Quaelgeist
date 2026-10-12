@@ -30,7 +30,7 @@ object Actions {
         val updated = if (next != null) {
             r.copy(baseAt = next, fireAt = next, nagCount = 0)
         } else {
-            r.copy(done = true, nagCount = 0)
+            r.copy(done = true, doneAt = System.currentTimeMillis(), nagCount = 0)
         }
         ReminderStore(ctx).upsert(updated)
         Scheduler.schedule(ctx, updated)
@@ -55,6 +55,12 @@ object Actions {
         val updated = r.copy(fireAt = at, nagCount = 0)
         ReminderStore(ctx).upsert(updated)
         Scheduler.schedule(ctx, updated)
+    }
+
+    /** Archiv leeren: alle erledigten Erinnerungen löschen (haben keine Alarme mehr). */
+    fun clearArchive(ctx: Context) {
+        ReminderStore(ctx).all().filter { it.done }.forEach { Notifier.cancel(ctx, it.id) }
+        ReminderStore(ctx).deleteDone()
     }
 
     fun delete(ctx: Context, id: Long) {
