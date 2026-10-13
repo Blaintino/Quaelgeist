@@ -1,9 +1,12 @@
 package de.quaelgeist
 
+import android.app.DatePickerDialog
 import android.app.TimePickerDialog
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.text.format.DateFormat
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
@@ -36,6 +39,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import java.time.Instant
 import java.time.ZoneId
+import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
@@ -153,6 +157,28 @@ private fun NagScreen(id: Long, onClose: () -> Unit) {
                     ).show()
                 }
             }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                SnoozeButton("Montag", Modifier.weight(1f)) {
+                    act { Actions.snoozeNextMonday(ctx, r.id, r.baseAt) }
+                }
+                SnoozeButton("Anderer Tag…", Modifier.weight(1f)) {
+                    pickDayAndTime(ctx, r) { at ->
+                        act { Actions.snoozeUntil(ctx, r.id, at, r.baseAt) }
+                    }
+                }
+            }
+            // Für echte Änderungen (Titel, Wiederholung, Termin der Serie) den Editor öffnen.
+            TextButton(onClick = {
+                ctx.startActivity(
+                    Intent(ctx, MainActivity::class.java)
+                        .putExtra(MainActivity.EXTRA_EDIT_ID, r.id)
+                        .addFlags(
+                            Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                                Intent.FLAG_ACTIVITY_SINGLE_TOP,
+                        ),
+                )
+                onClose()
+            }) { Text("In der App bearbeiten") }
 
             Spacer(Modifier.height(16.dp))
             TextButton(onClick = onClose) {
@@ -163,6 +189,38 @@ private fun NagScreen(id: Long, onClose: () -> Unit) {
             }
         }
     }
+}
+
+/**
+ * „Anderer Tag…": erst das Datum, dann die Uhrzeit (vorbelegt mit der des ursprünglichen
+ * Termins). Ein Zeitpunkt in der Vergangenheit wird nicht übernommen.
+ */
+private fun pickDayAndTime(ctx: Context, r: Reminder, onPicked: (Long) -> Unit) {
+    val zone = ZoneId.systemDefault()
+    val now = ZonedDateTime.now(zone)
+    val original = Instant.ofEpochMilli(r.baseAt).atZone(zone)
+    val start = now.plusDays(1)
+    DatePickerDialog(
+        ctx,
+        { _, y, m, d ->
+            TimePickerDialog(
+                ctx,
+                { _, h, min ->
+                    val at = ZonedDateTime.of(y, m + 1, d, h, min, 0, 0, zone)
+                    if (at.isAfter(ZonedDateTime.now(zone))) {
+                        onPicked(at.toInstant().toEpochMilli())
+                    } else {
+                        Toast.makeText(
+                            ctx, "Der Zeitpunkt liegt in der Vergangenheit", Toast.LENGTH_SHORT,
+                        ).show()
+                    }
+                },
+                original.hour, original.minute, DateFormat.is24HourFormat(ctx),
+            ).show()
+        },
+        start.year, start.monthValue - 1, start.dayOfMonth,
+    ).apply { datePicker.minDate = now.toLocalDate().atStartOfDay(zone).toInstant().toEpochMilli() }
+        .show()
 }
 
 @Composable

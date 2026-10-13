@@ -150,7 +150,13 @@ object Notifier {
             .setWhen(System.currentTimeMillis())
             .setShowWhen(true)
             .setContentIntent(screen)
-            .addAction(0, "Erledigt", actionIntent(ctx, r, Actions.DONE))
+            .addAction(
+                // Auf dem Sperrbildschirm erst nach dem Entsperren (ab Android 12), damit nichts
+                // versehentlich abgehakt wird. Entsperrt gibt es keinen Extraschritt.
+                NotificationCompat.Action.Builder(0, "Erledigt", actionIntent(ctx, r, Actions.DONE))
+                    .setAuthenticationRequired(true)
+                    .build(),
+            )
             .addAction(0, "Verschieben…", screen)
             .build()
         // Erst entfernen, dann neu posten: So zählt jede Wiederholung als neue Meldung

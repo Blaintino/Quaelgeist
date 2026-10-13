@@ -1,7 +1,9 @@
 package de.quaelgeist
 
+import java.time.DayOfWeek
 import java.time.LocalTime
 import java.time.ZonedDateTime
+import java.time.temporal.TemporalAdjusters
 
 /** Zeitvorschläge der Schnelleingabe (reine Funktionen, siehe `QuickTimesTest`). */
 object QuickTimes {
@@ -18,6 +20,14 @@ object QuickTimes {
 
     fun tomorrowMorning(now: ZonedDateTime): ZonedDateTime =
         now.plusDays(1).with(MORNING).withSecond(0).withNano(0)
+
+    /**
+     * Nächster Montag zur Uhrzeit [time]; ist heute Montag, der Montag in einer Woche.
+     * Fällt [time] in die Lücke der Zeitumstellung, verschiebt `atZone` sie nach vorn.
+     */
+    fun nextMonday(now: ZonedDateTime, time: LocalTime): ZonedDateTime =
+        now.toLocalDate().with(TemporalAdjusters.next(DayOfWeek.MONDAY)).atTime(time)
+            .atZone(now.zone)
 
     /** Gewählte Uhrzeit: heute, oder morgen, falls sie heute schon vorbei ist. */
     fun atTime(now: ZonedDateTime, hour: Int, minute: Int): ZonedDateTime {

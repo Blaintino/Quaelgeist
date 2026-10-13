@@ -30,6 +30,7 @@ class MainActivity : ComponentActivity() {
 
     private fun handleIntent(intent: Intent?) {
         intent?.getStringExtra(EXTRA_NEW_TITLE)?.let { newTitleRequest.value = it }
+        intent?.getLongExtra(EXTRA_EDIT_ID, -1)?.takeIf { it >= 0 }?.let { editRequest.value = it }
     }
 
     override fun onResume() {
@@ -42,7 +43,11 @@ class MainActivity : ComponentActivity() {
         /** Öffnet den Editor für eine neue Erinnerung mit diesem Titel (aus der Schnelleingabe). */
         const val EXTRA_NEW_TITLE = "newTitle"
 
+        /** Öffnet den Editor für diese Erinnerung (aus dem Verschieben-Bildschirm). */
+        const val EXTRA_EDIT_ID = "editId"
+
         val resumeTick = MutableStateFlow(0)
         val newTitleRequest = MutableStateFlow<String?>(null)
+        val editRequest = MutableStateFlow<Long?>(null)
     }
 }

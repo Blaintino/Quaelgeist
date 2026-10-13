@@ -52,7 +52,17 @@ Cloud-Sessions haben weder Emulator noch Handy.
   - `Reliability.kt`: Prüfliste mit Systemeinstellungs-Links und Test-Erinnerung; neue
     Voraussetzungen dort ergänzen.
 - Benachrichtigung hat nur *Erledigt* und *Verschieben…*; Verschieben öffnet `NagActivity`
-  (Wunsch des Nutzers). Standard-Nag-Intervall 10 Minuten.
+  (Wunsch des Nutzers). Standard-Nag-Intervall 10 Minuten. *Erledigt* mit
+  `setAuthenticationRequired(true)`: auf dem Sperrbildschirm erst nach dem Entsperren.
+- `NagActivity`: Verschieben um 10/30 Min, 1/3 Std, Morgen, Montag (`QuickTimes.nextMonday`,
+  Uhrzeit aus `baseAt`, heute Montag → in einer Woche), Uhrzeit…, Anderer Tag… (Datum, dann
+  Uhrzeit; alles reines Snooze über `Actions.snoozeUntil`). „In der App bearbeiten“ startet
+  `MainActivity` mit `EXTRA_EDIT_ID` (`editRequest`) und öffnet den Editor.
+- Karten in der Übersicht zeigen nur `fireAt` (nächste Meldung) ohne Beschriftung, kein
+  „Fällig:“ mehr (Wunsch des Nutzers). Benachrichtigung und `NagActivity` zeigen weiter den
+  Termin (`baseAt`).
+- Editor (`EditDialog`) ist ein `Dialog` mit Kopfzeile ✕ / Überschrift / *Speichern*, damit die
+  Tastatur Speichern nicht verdeckt; Eingabetaste im Titelfeld speichert.
 - `AlarmReceiver`: plant zuerst die nächste Wiederholung (`nagCount`, `fireAt`), zeigt dann die
   Meldung.
   Nach der letzten erlaubten Meldung rücken Serien zum nächsten Termin vor, einmalige bleiben

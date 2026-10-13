@@ -24,10 +24,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
@@ -43,6 +45,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -64,9 +67,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.delay
 import java.time.DayOfWeek
@@ -186,6 +192,19 @@ fun App() {
             tab = TAB_ONCE
             creatingTitle = it
             MainActivity.newTitleRequest.value = null
+        }
+    }
+
+    // „In der App bearbeiten" aus dem Verschieben-Bildschirm: Editor für diese Erinnerung.
+    val editRequest by MainActivity.editRequest.collectAsState()
+    LaunchedEffect(editRequest, all) {
+        editRequest?.let { id ->
+            all.firstOrNull { it.id == id && !it.done }?.let {
+                showReliability = false
+                tab = if (it.repeatType == RepeatType.NONE) TAB_ONCE else TAB_RECURRING
+                editing = it
+            }
+            MainActivity.editRequest.value = null
         }
     }
 
@@ -432,18 +451,12 @@ private fun ReminderCard(r: Reminder, now: Long, onEdit: () -> Unit) {
             if (r.done) {
                 Text("Erledigt", color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else {
+                // Zeitpunkt der nächsten Meldung (Termin, verschobener Termin oder nächster Nag).
                 Text(
-                    "Fällig: ${fmt(r.baseAt)}" + if (overdue) " – überfällig" else "",
+                    fmt(r.fireAt) + if (overdue) " – überfällig" else "",
                     color = if (overdue) MaterialTheme.colorScheme.error
                     else MaterialTheme.colorScheme.onSurface,
                 )
-                if (r.fireAt != r.baseAt) {
-                    Text(
-                        "Nächste Meldung: ${fmt(r.fireAt)}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
                 val extra = listOf(repeatLabel(r), nagLabel(r)).filter { it.isNotEmpty() }
                     .joinToString(" · ")
                 Text(
@@ -497,131 +510,151 @@ private fun EditDialog(
     val dt = Instant.ofEpochMilli(at).atZone(zone)
     val number = KeyboardOptions(keyboardType = KeyboardType.Number)
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(heading ?: if (initial == null) "Neue Erinnerung" else "Erinnerung bearbeiten")
-        },
-        text = {
-            Column(
-                Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                OutlinedTextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    label = { Text("Titel") },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = {
-                        DatePickerDialog(
-                            ctx,
-                            { _, y, m, d ->
-                                at = ZonedDateTime.of(y, m + 1, d, dt.hour, dt.minute, 0, 0, zone)
-                                    .toInstant().toEpochMilli()
-                            },
-                            dt.year, dt.monthValue - 1, dt.dayOfMonth,
-                        ).show()
-                    }) {
-                        Text(dt.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)))
+    fun save() {
+        // Termin unverändert und gleiche Regel: ursprünglichen Serienstart behalten,
+        // damit z. B. „am 31." nach einem 30er-Monat nicht auf den 30. rutscht.
+        val keepAnchor = initial != null && at == initial.baseAt &&
+            type == initial.repeatType
+        onSave(
+            Reminder(
+                id = initial?.id ?: ReminderStore.newId(),
+                title = title.trim(),
+                baseAt = at,
+                fireAt = at,
+                anchorAt = initial?.takeIf { keepAnchor }?.anchorAt ?: at,
+                repeatType = type,
+                repeatEvery = (every.toIntOrNull() ?: 1).coerceAtLeast(1),
+                weekdayMask = if (type == RepeatType.WEEKLY) mask else 0,
+                nagIntervalMin = nag.toIntOrNull() ?: 0,
+                maxNags = maxNags.toIntOrNull() ?: 0,
+            ).let(Recurrence::alignStart),
+        )
+    }
+
+    // Kopfzeile mit Speichern oben: Die Tastatur verdeckt sonst die Knöpfe am unteren Rand.
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(shape = MaterialTheme.shapes.extraLarge, tonalElevation = 6.dp) {
+            Column(Modifier.padding(bottom = 16.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth().padding(start = 4.dp, end = 8.dp, top = 8.dp),
+                ) {
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Default.Close, contentDescription = "Abbrechen")
                     }
-                    OutlinedButton(onClick = {
-                        TimePickerDialog(
-                            ctx,
-                            { _, h, min ->
-                                at = ZonedDateTime
-                                    .of(dt.year, dt.monthValue, dt.dayOfMonth, h, min, 0, 0, zone)
-                                    .toInstant().toEpochMilli()
-                            },
-                            dt.hour, dt.minute, DateFormat.is24HourFormat(ctx),
-                        ).show()
-                    }) {
-                        Text(dt.format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)))
+                    Text(
+                        heading ?: if (initial == null) "Neue Erinnerung" else "Erinnerung bearbeiten",
+                        style = MaterialTheme.typography.titleLarge,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                    TextButton(enabled = title.isNotBlank(), onClick = { save() }) {
+                        Text("Speichern")
                     }
                 }
-
-                Text("Wiederholung", style = MaterialTheme.typography.labelLarge)
-                Box {
-                    OutlinedButton(onClick = { menu = true }) { Text(typeLabel(type)) }
-                    DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                        RepeatType.entries.forEach { t ->
-                            DropdownMenuItem(
-                                text = { Text(typeLabel(t)) },
-                                onClick = { type = t; menu = false },
-                            )
+                Column(
+                    Modifier
+                        .padding(horizontal = 24.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    OutlinedTextField(
+                        value = title,
+                        onValueChange = { title = it },
+                        label = { Text("Titel") },
+                        singleLine = true,
+                        // Eingabetaste = Speichern mit den übrigen Werten wie eingestellt.
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(
+                            onDone = { if (title.isNotBlank()) save() },
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(onClick = {
+                            DatePickerDialog(
+                                ctx,
+                                { _, y, m, d ->
+                                    at = ZonedDateTime.of(y, m + 1, d, dt.hour, dt.minute, 0, 0, zone)
+                                        .toInstant().toEpochMilli()
+                                },
+                                dt.year, dt.monthValue - 1, dt.dayOfMonth,
+                            ).show()
+                        }) {
+                            Text(dt.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)))
+                        }
+                        OutlinedButton(onClick = {
+                            TimePickerDialog(
+                                ctx,
+                                { _, h, min ->
+                                    at = ZonedDateTime
+                                        .of(dt.year, dt.monthValue, dt.dayOfMonth, h, min, 0, 0, zone)
+                                        .toInstant().toEpochMilli()
+                                },
+                                dt.hour, dt.minute, DateFormat.is24HourFormat(ctx),
+                            ).show()
+                        }) {
+                            Text(dt.format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)))
                         }
                     }
-                }
-                if (type != RepeatType.NONE) {
+
+                    Text("Wiederholung", style = MaterialTheme.typography.labelLarge)
+                    Box {
+                        OutlinedButton(onClick = { menu = true }) { Text(typeLabel(type)) }
+                        DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                            RepeatType.entries.forEach { t ->
+                                DropdownMenuItem(
+                                    text = { Text(typeLabel(t)) },
+                                    onClick = { type = t; menu = false },
+                                )
+                            }
+                        }
+                    }
+                    if (type != RepeatType.NONE) {
+                        OutlinedTextField(
+                            value = every,
+                            onValueChange = { every = it.filter(Char::isDigit).take(2) },
+                            label = { Text("Alle … ${unitLabel(type)}") },
+                            keyboardOptions = number,
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                    if (type == RepeatType.WEEKLY) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                            DAY_NAMES.forEachIndexed { i, name ->
+                                DayToggle(name, (mask and (1 shl i)) != 0) { mask = mask xor (1 shl i) }
+                            }
+                        }
+                        Text(
+                            "Ohne Auswahl gilt der Wochentag des Termins.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+
+                    Text("Nagging", style = MaterialTheme.typography.labelLarge)
                     OutlinedTextField(
-                        value = every,
-                        onValueChange = { every = it.filter(Char::isDigit).take(2) },
-                        label = { Text("Alle … ${unitLabel(type)}") },
+                        value = nag,
+                        onValueChange = { nag = it.filter(Char::isDigit).take(4) },
+                        label = { Text("Alle … Minuten erinnern (0 = einmalig)") },
+                        keyboardOptions = number,
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    OutlinedTextField(
+                        value = maxNags,
+                        onValueChange = { maxNags = it.filter(Char::isDigit).take(3) },
+                        label = { Text("Max. Wiederholungen (0 = unbegrenzt)") },
                         keyboardOptions = number,
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
-                if (type == RepeatType.WEEKLY) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                        DAY_NAMES.forEachIndexed { i, name ->
-                            DayToggle(name, (mask and (1 shl i)) != 0) { mask = mask xor (1 shl i) }
-                        }
-                    }
-                    Text(
-                        "Ohne Auswahl gilt der Wochentag des Termins.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-
-                Text("Nagging", style = MaterialTheme.typography.labelLarge)
-                OutlinedTextField(
-                    value = nag,
-                    onValueChange = { nag = it.filter(Char::isDigit).take(4) },
-                    label = { Text("Alle … Minuten erinnern (0 = einmalig)") },
-                    keyboardOptions = number,
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                OutlinedTextField(
-                    value = maxNags,
-                    onValueChange = { maxNags = it.filter(Char::isDigit).take(3) },
-                    label = { Text("Max. Wiederholungen (0 = unbegrenzt)") },
-                    keyboardOptions = number,
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
             }
-        },
-        confirmButton = {
-            TextButton(
-                enabled = title.isNotBlank(),
-                onClick = {
-                    // Termin unverändert und gleiche Regel: ursprünglichen Serienstart behalten,
-                    // damit z. B. „am 31." nach einem 30er-Monat nicht auf den 30. rutscht.
-                    val keepAnchor = initial != null && at == initial.baseAt &&
-                        type == initial.repeatType
-                    onSave(
-                        Reminder(
-                            id = initial?.id ?: ReminderStore.newId(),
-                            title = title.trim(),
-                            baseAt = at,
-                            fireAt = at,
-                            anchorAt = initial?.takeIf { keepAnchor }?.anchorAt ?: at,
-                            repeatType = type,
-                            repeatEvery = (every.toIntOrNull() ?: 1).coerceAtLeast(1),
-                            weekdayMask = if (type == RepeatType.WEEKLY) mask else 0,
-                            nagIntervalMin = nag.toIntOrNull() ?: 0,
-                            maxNags = maxNags.toIntOrNull() ?: 0,
-                        ).let(Recurrence::alignStart),
-                    )
-                },
-            ) { Text("Speichern") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Abbrechen") } },
-    )
+        }
+    }
 }
 
 @Composable
