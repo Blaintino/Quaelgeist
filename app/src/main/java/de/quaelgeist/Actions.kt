@@ -48,6 +48,15 @@ object Actions {
         snoozeUntil(ctx, id, tomorrow.toInstant().toEpochMilli(), expectedBase)
     }
 
+    /** Nächster Montag zur selben Uhrzeit wie der ursprüngliche Termin. */
+    fun snoozeNextMonday(ctx: Context, id: Long, expectedBase: Long? = null) {
+        val r = ReminderStore(ctx).get(id) ?: return
+        val zone = ZoneId.systemDefault()
+        val time = Instant.ofEpochMilli(r.baseAt).atZone(zone).toLocalTime()
+        val monday = QuickTimes.nextMonday(Instant.now().atZone(zone), time)
+        snoozeUntil(ctx, id, monday.toInstant().toEpochMilli(), expectedBase)
+    }
+
     /** Nächste Meldung zum Zeitpunkt [at]; danach wird wieder im Intervall genervt. */
     fun snoozeUntil(ctx: Context, id: Long, at: Long, expectedBase: Long? = null) {
         val r = load(ctx, id, expectedBase) ?: return

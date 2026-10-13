@@ -14,8 +14,13 @@ lokal auf dem Gerät, es gibt keine Google-Dienste, kein Netzwerk und keine Kont
   monatlich am n-ten Wochentag (z. B. jeden 3. Mittwoch), jeweils „alle N" Tage/Wochen/Monate.
 - **Erledigt oder Verschieben**: In der Benachrichtigung stehen *Erledigt* und
   *Verschieben…*. *Verschieben…* (und Tippen auf die Meldung) öffnet einen Bildschirm mit
-  10 Min, 30 Min, 1 Std, 3 Std, Morgen und frei wählbarer Uhrzeit. Bei gesperrtem Handy
-  muss vorher entsperrt werden, damit nichts versehentlich abgehakt oder verschoben wird.
+  10 Min, 30 Min, 1 Std, 3 Std, Morgen, Montag (jeweils zur ursprünglichen Uhrzeit), frei
+  wählbarer Uhrzeit und *Anderer Tag…* (Datum und Uhrzeit), dazu *In der App bearbeiten*.
+  Bei gesperrtem Handy muss vorher entsperrt werden – auch für *Erledigt* in der Meldung
+  (ab Android 12) –, damit nichts versehentlich abgehakt oder verschoben wird.
+- **Übersicht**: Jede Karte zeigt den Zeitpunkt der nächsten Meldung (rot, wenn überfällig).
+- **Editor**: *Speichern* steht oben in der Kopfzeile, damit die Tastatur es nicht verdeckt;
+  die Eingabetaste im Titelfeld speichert ebenfalls.
 - **Mehrere Erinnerungen gleichzeitig**: Jede bekommt ihre eigene Meldung und lässt sich
   einzeln abhaken oder verschieben. Klingeln und vibrieren tut aber nur die erste; die übrigen
   kommen still dazu.

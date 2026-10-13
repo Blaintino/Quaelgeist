@@ -3,6 +3,7 @@ package de.quaelgeist
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
+import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
 
@@ -44,5 +45,21 @@ class QuickTimesTest {
         // 25.10.2026: Umstellung auf Winterzeit; morgen 8:00 bleibt 8:00 Ortszeit.
         val evening = ZonedDateTime.of(2026, 10, 24, 22, 0, 0, 0, zone)
         assertEquals(8, QuickTimes.tomorrowMorning(evening).hour)
+    }
+
+    @Test
+    fun nextMondayKeepsTimeAndSkipsToday() {
+        val nine = LocalTime.of(9, 0)
+        // 12.10.2026 ist ein Montag: dann der Montag eine Woche später.
+        assertEquals(at(19, 9, 0), QuickTimes.nextMonday(at(12, 7, 0), nine))
+        assertEquals(at(19, 9, 0), QuickTimes.nextMonday(at(13, 22, 0), nine))
+        assertEquals(at(19, 9, 0), QuickTimes.nextMonday(at(18, 23, 59), nine))
+    }
+
+    @Test
+    fun nextMondayAcrossDstChange() {
+        // Zeitumstellung am 25.10.2026: 09:00 bleibt 09:00 Ortszeit.
+        val monday = QuickTimes.nextMonday(at(24, 12, 0), LocalTime.of(9, 0))
+        assertEquals(ZonedDateTime.of(2026, 10, 26, 9, 0, 0, 0, zone), monday)
     }
 }
