@@ -24,7 +24,9 @@ lokal auf dem Gerät, es gibt keine Google-Dienste, kein Netzwerk und keine Kont
   entfallen. Überfällig ist, was gerade nervt oder ohne Erledigung liegen geblieben ist –
   Verschobenes steht unter dem neuen Tag.
 - **Editor**: *Speichern* steht oben in der Kopfzeile, damit die Tastatur es nicht verdeckt;
-  die Eingabetaste im Titelfeld speichert ebenfalls.
+  die Eingabetaste im Titelfeld speichert ebenfalls. Schnellwahl *9:30* und *17:00* unter der
+  Uhrzeit. Liegt eine gewählte Uhrzeit an dem Tag schon zurück, rückt der Termin auf den
+  nächsten Tag zu dieser Uhrzeit (gilt auch für *Anderer Tag…* beim Verschieben).
 - **Mehrere Erinnerungen gleichzeitig**: Jede bekommt ihre eigene Meldung und lässt sich
   einzeln abhaken oder verschieben. Klingeln und vibrieren tut aber nur die erste; die übrigen
   kommen still dazu.
@@ -36,8 +38,9 @@ lokal auf dem Gerät, es gibt keine Google-Dienste, kein Netzwerk und keine Kont
   oder *Archiv leeren*. Wiederkehrende Erinnerungen springen beim Abhaken zum nächsten
   Termin und bleiben unter *Wiederkehrend*.
 - **Schnelleingabe-Widget**: Homescreen lange drücken → *Widgets* → *Quälgeist*. Ein Tipp
-  öffnet ein kleines Fenster mit Tastatur: Titel tippen, dann *In 1 Std*, *Heute 18:00*,
-  *Morgen 8:00* oder *Uhrzeit…* – gespeichert mit 10-Minuten-Nagging, ohne Wiederholung.
+  öffnet ein kleines Fenster mit Tastatur: Titel tippen, dann *9:30*, *17:00* (jeweils heute,
+  falls noch nicht vorbei, sonst morgen – die Beschriftung zeigt es), *In 1 Std* oder
+  *Uhrzeit…* – gespeichert mit 10-Minuten-Nagging, ohne Wiederholung.
   *Mehr Optionen* öffnet den vollen Editor mit dem getippten Titel.
 - **Smartwatch / Fitnessband**: Die Meldung ist so gebaut, dass Begleit-Apps wie Huawei
   Health sie weiterleiten (nicht „laufend“, jede Wiederholung als neue Meldung). Eine eigene

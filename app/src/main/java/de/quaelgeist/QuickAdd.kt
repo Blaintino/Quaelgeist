@@ -121,20 +121,20 @@ private fun QuickAddDialog(onClose: () -> Unit) {
                         .focusRequester(focus),
                 )
                 Text("Wann?", style = MaterialTheme.typography.labelLarge)
+                // Feste Uhrzeiten 9:30 und 17:00: heute, falls noch nicht vorbei, sonst morgen.
+                // Die Beschriftung zeigt, welcher Tag gemeint ist.
+                val (first, second) = QuickTimes.PRESETS.map { QuickTimes.atTime(now, it) }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TimeButton("In 1 Std", ready, Modifier.weight(1f)) {
-                        saveAt(QuickTimes.inOneHour(ZonedDateTime.now(zone)))
+                    TimeButton(presetLabel(first, now), ready, Modifier.weight(1f)) {
+                        saveAt(QuickTimes.atTime(ZonedDateTime.now(zone), first.toLocalTime()))
                     }
-                    val evening = QuickTimes.thisEvening(now)
-                    if (evening != null) {
-                        TimeButton("Heute 18:00", ready, Modifier.weight(1f)) {
-                            saveAt(QuickTimes.thisEvening(ZonedDateTime.now(zone)) ?: evening)
-                        }
+                    TimeButton(presetLabel(second, now), ready, Modifier.weight(1f)) {
+                        saveAt(QuickTimes.atTime(ZonedDateTime.now(zone), second.toLocalTime()))
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TimeButton("Morgen 8:00", ready, Modifier.weight(1f)) {
-                        saveAt(QuickTimes.tomorrowMorning(ZonedDateTime.now(zone)))
+                    TimeButton("In 1 Std", ready, Modifier.weight(1f)) {
+                        saveAt(QuickTimes.inOneHour(ZonedDateTime.now(zone)))
                     }
                     TimeButton("Uhrzeit…", ready, Modifier.weight(1f)) {
                         val start = ZonedDateTime.now(zone)
@@ -162,6 +162,12 @@ private fun QuickAddDialog(onClose: () -> Unit) {
         },
         dismissButton = { TextButton(onClick = onClose) { Text("Abbrechen") } },
     )
+}
+
+/** „Heute 17:00" oder „Morgen 9:30". */
+private fun presetLabel(at: ZonedDateTime, now: ZonedDateTime): String {
+    val day = if (at.toLocalDate() == now.toLocalDate()) "Heute" else "Morgen"
+    return "$day " + at.format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT))
 }
 
 @Composable
