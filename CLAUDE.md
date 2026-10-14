@@ -68,7 +68,8 @@ Cloud-Sessions haben weder Emulator noch Handy.
   Termin (`baseAt`).
 - Editor (`EditDialog`) ist ein `Dialog` mit Kopfzeile ✕ / Überschrift / *Speichern*, damit die
   Tastatur Speichern nicht verdeckt; Eingabetaste im Titelfeld speichert. Schnellwahl-Chips
-  `QuickTimes.PRESETS` (9:30, 17:00).
+  `QuickTimes.PRESETS` (9:30, 17:00); dieselben Uhrzeiten als Knöpfe im Widget-Dialog
+  („Heute …“/„Morgen …“, je nachdem ob schon vorbei).
 - Uhrzeit-Regel (Wunsch des Nutzers): Wird im Editor Datum oder Uhrzeit gewählt (auch per
   Chip) oder beim Verschieben „Anderer Tag…“ genutzt und liegt der Zeitpunkt nicht in der
   Zukunft, gilt der nächste Tag zu dieser Uhrzeit (`QuickTimes.onDayOrNext`). Unangetastete

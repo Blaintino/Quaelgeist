@@ -1,7 +1,6 @@
 package de.quaelgeist
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Test
 import java.time.LocalDate
 import java.time.LocalTime
@@ -21,16 +20,12 @@ class QuickTimesTest {
     }
 
     @Test
-    fun thisEveningOnlyBeforeSix() {
-        assertEquals(at(12, 18, 0), QuickTimes.thisEvening(at(12, 9, 0)))
-        assertNull(QuickTimes.thisEvening(at(12, 18, 0)))
-        assertNull(QuickTimes.thisEvening(at(12, 21, 0)))
-    }
-
-    @Test
-    fun tomorrowMorningIsNextDayEight() {
-        assertEquals(at(13, 8, 0), QuickTimes.tomorrowMorning(at(12, 23, 59)))
-        assertEquals(at(13, 8, 0), QuickTimes.tomorrowMorning(at(12, 0, 5)))
+    fun presetsTodayOrTomorrow() {
+        val (morning, evening) = QuickTimes.PRESETS
+        assertEquals(at(12, 9, 30), QuickTimes.atTime(at(12, 8, 0), morning))
+        assertEquals(at(13, 9, 30), QuickTimes.atTime(at(12, 10, 0), morning))
+        assertEquals(at(12, 17, 0), QuickTimes.atTime(at(12, 10, 0), evening))
+        assertEquals(at(13, 17, 0), QuickTimes.atTime(at(12, 17, 0), evening))
     }
 
     @Test
@@ -43,9 +38,12 @@ class QuickTimesTest {
 
     @Test
     fun dstChangeKeepsWallClock() {
-        // 25.10.2026: Umstellung auf Winterzeit; morgen 8:00 bleibt 8:00 Ortszeit.
+        // 25.10.2026: Umstellung auf Winterzeit; 9:30 am nächsten Morgen bleibt 9:30 Ortszeit.
         val evening = ZonedDateTime.of(2026, 10, 24, 22, 0, 0, 0, zone)
-        assertEquals(8, QuickTimes.tomorrowMorning(evening).hour)
+        val next = QuickTimes.atTime(evening, QuickTimes.PRESETS[0])
+        assertEquals(25, next.dayOfMonth)
+        assertEquals(9, next.hour)
+        assertEquals(30, next.minute)
     }
 
     @Test

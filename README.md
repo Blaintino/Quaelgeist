@@ -38,8 +38,9 @@ lokal auf dem Gerät, es gibt keine Google-Dienste, kein Netzwerk und keine Kont
   oder *Archiv leeren*. Wiederkehrende Erinnerungen springen beim Abhaken zum nächsten
   Termin und bleiben unter *Wiederkehrend*.
 - **Schnelleingabe-Widget**: Homescreen lange drücken → *Widgets* → *Quälgeist*. Ein Tipp
-  öffnet ein kleines Fenster mit Tastatur: Titel tippen, dann *In 1 Std*, *Heute 18:00*,
-  *Morgen 8:00* oder *Uhrzeit…* – gespeichert mit 10-Minuten-Nagging, ohne Wiederholung.
+  öffnet ein kleines Fenster mit Tastatur: Titel tippen, dann *9:30*, *17:00* (jeweils heute,
+  falls noch nicht vorbei, sonst morgen – die Beschriftung zeigt es), *In 1 Std* oder
+  *Uhrzeit…* – gespeichert mit 10-Minuten-Nagging, ohne Wiederholung.
   *Mehr Optionen* öffnet den vollen Editor mit dem getippten Titel.
 - **Smartwatch / Fitnessband**: Die Meldung ist so gebaut, dass Begleit-Apps wie Huawei
   Health sie weiterleiten (nicht „laufend“, jede Wiederholung als neue Meldung). Eine eigene
