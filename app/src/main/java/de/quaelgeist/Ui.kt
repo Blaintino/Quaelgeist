@@ -307,8 +307,21 @@ fun App() {
                     contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 96.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    items(list, key = { it.id }) { r ->
-                        ReminderCard(r, now, onEdit = { editing = r })
+                    // Abschnitte nach nächster Meldung; leere Gruppen entfallen.
+                    val groups = DueGroups.group(list, Instant.ofEpochMilli(now).atZone(zone))
+                    groups.forEach { (group, reminders) ->
+                        item(key = "group-${group.name}") {
+                            Text(
+                                group.label,
+                                style = MaterialTheme.typography.titleSmall,
+                                color = if (group == DueGroup.OVERDUE) MaterialTheme.colorScheme.error
+                                else MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(top = 4.dp),
+                            )
+                        }
+                        items(reminders, key = { it.id }) { r ->
+                            ReminderCard(r, now, onEdit = { editing = r })
+                        }
                     }
                 }
             } else {
@@ -434,7 +447,7 @@ private fun ArchiveCard(r: Reminder, onReopen: () -> Unit) {
 @Composable
 private fun ReminderCard(r: Reminder, now: Long, onEdit: () -> Unit) {
     val ctx = LocalContext.current
-    val overdue = !r.done && r.fireAt <= now
+    val overdue = DueGroups.isOverdue(r, now)
     Card(onClick = onEdit, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 4.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
