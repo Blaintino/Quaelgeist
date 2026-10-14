@@ -3,6 +3,7 @@ package de.quaelgeist
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
+import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -61,5 +62,23 @@ class QuickTimesTest {
         // Zeitumstellung am 25.10.2026: 09:00 bleibt 09:00 Ortszeit.
         val monday = QuickTimes.nextMonday(at(24, 12, 0), LocalTime.of(9, 0))
         assertEquals(ZonedDateTime.of(2026, 10, 26, 9, 0, 0, 0, zone), monday)
+    }
+
+    @Test
+    fun onDayOrNextKeepsFutureTime() {
+        val now = at(14, 12, 0)
+        assertEquals(at(14, 17, 0), QuickTimes.onDayOrNext(now.toLocalDate(), LocalTime.of(17, 0), now))
+        assertEquals(at(20, 9, 30), QuickTimes.onDayOrNext(LocalDate.of(2026, 10, 20), LocalTime.of(9, 30), now))
+    }
+
+    @Test
+    fun onDayOrNextMovesPastTimeToNextDay() {
+        val now = at(14, 12, 0)
+        // Heute 9:30 ist schon vorbei → morgen 9:30.
+        assertEquals(at(15, 9, 30), QuickTimes.onDayOrNext(now.toLocalDate(), LocalTime.of(9, 30), now))
+        // Genau jetzt zählt auch als vorbei.
+        assertEquals(at(15, 12, 0), QuickTimes.onDayOrNext(now.toLocalDate(), LocalTime.of(12, 0), now))
+        // Datum in der Vergangenheit → nächste Gelegenheit ab jetzt.
+        assertEquals(at(14, 17, 0), QuickTimes.onDayOrNext(LocalDate.of(2026, 10, 10), LocalTime.of(17, 0), now))
     }
 }

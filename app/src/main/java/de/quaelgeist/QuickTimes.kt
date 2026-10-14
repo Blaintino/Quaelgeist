@@ -1,6 +1,7 @@
 package de.quaelgeist
 
 import java.time.DayOfWeek
+import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZonedDateTime
 import java.time.temporal.TemporalAdjusters
@@ -28,6 +29,19 @@ object QuickTimes {
     fun nextMonday(now: ZonedDateTime, time: LocalTime): ZonedDateTime =
         now.toLocalDate().with(TemporalAdjusters.next(DayOfWeek.MONDAY)).atTime(time)
             .atZone(now.zone)
+
+    /** Feste Uhrzeiten im Editor (Wunsch des Nutzers). */
+    val PRESETS: List<LocalTime> = listOf(LocalTime.of(9, 30), LocalTime.of(17, 0))
+
+    /**
+     * Uhrzeit [time] am Tag [date] – liegt das nicht in der Zukunft, stattdessen die nächste
+     * künftige Gelegenheit zu dieser Uhrzeit (heute oder morgen). So wird kein Termin in der
+     * Vergangenheit angelegt, der sofort klingeln würde.
+     */
+    fun onDayOrNext(date: LocalDate, time: LocalTime, now: ZonedDateTime): ZonedDateTime {
+        val at = date.atTime(time).atZone(now.zone)
+        return if (at.isAfter(now)) at else atTime(now, time.hour, time.minute)
+    }
 
     /** Gewählte Uhrzeit: heute, oder morgen, falls sie heute schon vorbei ist. */
     fun atTime(now: ZonedDateTime, hour: Int, minute: Int): ZonedDateTime {

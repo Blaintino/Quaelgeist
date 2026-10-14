@@ -24,7 +24,9 @@ lokal auf dem Gerät, es gibt keine Google-Dienste, kein Netzwerk und keine Kont
   entfallen. Überfällig ist, was gerade nervt oder ohne Erledigung liegen geblieben ist –
   Verschobenes steht unter dem neuen Tag.
 - **Editor**: *Speichern* steht oben in der Kopfzeile, damit die Tastatur es nicht verdeckt;
-  die Eingabetaste im Titelfeld speichert ebenfalls.
+  die Eingabetaste im Titelfeld speichert ebenfalls. Schnellwahl *9:30* und *17:00* unter der
+  Uhrzeit. Liegt eine gewählte Uhrzeit an dem Tag schon zurück, rückt der Termin auf den
+  nächsten Tag zu dieser Uhrzeit (gilt auch für *Anderer Tag…* beim Verschieben).
 - **Mehrere Erinnerungen gleichzeitig**: Jede bekommt ihre eigene Meldung und lässt sich
   einzeln abhaken oder verschieben. Klingeln und vibrieren tut aber nur die erste; die übrigen
   kommen still dazu.

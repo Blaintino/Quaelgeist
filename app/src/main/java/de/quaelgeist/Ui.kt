@@ -37,6 +37,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -77,6 +78,8 @@ import androidx.core.content.ContextCompat
 import kotlinx.coroutines.delay
 import java.time.DayOfWeek
 import java.time.Instant
+import java.time.LocalDate
+import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
@@ -108,6 +111,10 @@ private fun fmt(ms: Long): String =
         DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT)
             .withLocale(Locale.getDefault()),
     )
+
+/** Datum + Uhrzeit aus dem Editor; schon vergangen → nächster Tag zu dieser Uhrzeit. */
+private fun futureAt(date: LocalDate, time: LocalTime): Long =
+    QuickTimes.onDayOrNext(date, time, ZonedDateTime.now(zone)).toInstant().toEpochMilli()
 
 internal fun defaultAt(): Long =
     ZonedDateTime.now(zone).plusHours(1).withMinute(0).withSecond(0).withNano(0)
@@ -592,8 +599,7 @@ private fun EditDialog(
                             DatePickerDialog(
                                 ctx,
                                 { _, y, m, d ->
-                                    at = ZonedDateTime.of(y, m + 1, d, dt.hour, dt.minute, 0, 0, zone)
-                                        .toInstant().toEpochMilli()
+                                    at = futureAt(LocalDate.of(y, m + 1, d), dt.toLocalTime())
                                 },
                                 dt.year, dt.monthValue - 1, dt.dayOfMonth,
                             ).show()
@@ -604,14 +610,25 @@ private fun EditDialog(
                             TimePickerDialog(
                                 ctx,
                                 { _, h, min ->
-                                    at = ZonedDateTime
-                                        .of(dt.year, dt.monthValue, dt.dayOfMonth, h, min, 0, 0, zone)
-                                        .toInstant().toEpochMilli()
+                                    at = futureAt(dt.toLocalDate(), LocalTime.of(h, min))
                                 },
                                 dt.hour, dt.minute, DateFormat.is24HourFormat(ctx),
                             ).show()
                         }) {
                             Text(dt.format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)))
+                        }
+                    }
+                    // Feste Uhrzeiten; wie bei der Auswahl oben rückt eine schon vergangene
+                    // Uhrzeit auf den nächsten Tag.
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        QuickTimes.PRESETS.forEach { preset ->
+                            FilterChip(
+                                selected = dt.toLocalTime() == preset,
+                                onClick = { at = futureAt(dt.toLocalDate(), preset) },
+                                label = {
+                                    Text(preset.format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)))
+                                },
+                            )
                         }
                     }
 

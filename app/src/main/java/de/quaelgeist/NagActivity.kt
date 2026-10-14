@@ -6,7 +6,6 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.text.format.DateFormat
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
@@ -38,6 +37,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import java.time.Instant
+import java.time.LocalDate
+import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
@@ -193,7 +194,7 @@ private fun NagScreen(id: Long, onClose: () -> Unit) {
 
 /**
  * „Anderer Tag…": erst das Datum, dann die Uhrzeit (vorbelegt mit der des ursprünglichen
- * Termins). Ein Zeitpunkt in der Vergangenheit wird nicht übernommen.
+ * Termins). Liegt der Zeitpunkt schon zurück, gilt der nächste Tag zu dieser Uhrzeit.
  */
 private fun pickDayAndTime(ctx: Context, r: Reminder, onPicked: (Long) -> Unit) {
     val zone = ZoneId.systemDefault()
@@ -206,14 +207,10 @@ private fun pickDayAndTime(ctx: Context, r: Reminder, onPicked: (Long) -> Unit) 
             TimePickerDialog(
                 ctx,
                 { _, h, min ->
-                    val at = ZonedDateTime.of(y, m + 1, d, h, min, 0, 0, zone)
-                    if (at.isAfter(ZonedDateTime.now(zone))) {
-                        onPicked(at.toInstant().toEpochMilli())
-                    } else {
-                        Toast.makeText(
-                            ctx, "Der Zeitpunkt liegt in der Vergangenheit", Toast.LENGTH_SHORT,
-                        ).show()
-                    }
+                    val at = QuickTimes.onDayOrNext(
+                        LocalDate.of(y, m + 1, d), LocalTime.of(h, min), ZonedDateTime.now(zone),
+                    )
+                    onPicked(at.toInstant().toEpochMilli())
                 },
                 original.hour, original.minute, DateFormat.is24HourFormat(ctx),
             ).show()
