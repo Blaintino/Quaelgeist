@@ -19,6 +19,10 @@ lokal auf dem Gerät, es gibt keine Google-Dienste, kein Netzwerk und keine Kont
   Bei gesperrtem Handy muss vorher entsperrt werden – auch für *Erledigt* in der Meldung
   (ab Android 12) –, damit nichts versehentlich abgehakt oder verschoben wird.
 - **Übersicht**: Jede Karte zeigt den Zeitpunkt der nächsten Meldung (rot, wenn überfällig).
+  In *Wiederkehrend* und *Einmalig* ist die Liste in Abschnitte geteilt: *Überfällig*,
+  *Heute*, *Morgen*, *Diese Woche* (bis Sonntag) und *Ab nächster Woche*; leere Abschnitte
+  entfallen. Überfällig ist, was gerade nervt oder ohne Erledigung liegen geblieben ist –
+  Verschobenes steht unter dem neuen Tag.
 - **Editor**: *Speichern* steht oben in der Kopfzeile, damit die Tastatur es nicht verdeckt;
   die Eingabetaste im Titelfeld speichert ebenfalls.
 - **Mehrere Erinnerungen gleichzeitig**: Jede bekommt ihre eigene Meldung und lässt sich

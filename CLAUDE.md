@@ -58,6 +58,11 @@ Cloud-Sessions haben weder Emulator noch Handy.
   Uhrzeit aus `baseAt`, heute Montag → in einer Woche), Uhrzeit…, Anderer Tag… (Datum, dann
   Uhrzeit; alles reines Snooze über `Actions.snoozeUntil`). „In der App bearbeiten“ startet
   `MainActivity` mit `EXTRA_EDIT_ID` (`editRequest`) und öffnet den Editor.
+- Übersicht (Tabs Wiederkehrend und Einmalig) in Abschnitte nach `fireAt` geteilt
+  (`DueGroups.kt`, Tests `DueGroupsTest`): Überfällig / Heute / Morgen / Diese Woche (bis
+  Sonntag) / Ab nächster Woche, leere entfallen (Wunsch des Nutzers). Überfällig =
+  `fireAt <= jetzt || nagCount > 0` (nervt gerade; Snooze setzt `nagCount` zurück), dieselbe
+  Regel färbt die Karte rot.
 - Karten in der Übersicht zeigen nur `fireAt` (nächste Meldung) ohne Beschriftung, kein
   „Fällig:“ mehr (Wunsch des Nutzers). Benachrichtigung und `NagActivity` zeigen weiter den
   Termin (`baseAt`).
