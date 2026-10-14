@@ -10,7 +10,7 @@ lokal auf dem Gerät, es gibt keine Google-Dienste, kein Netzwerk und keine Kont
 
 - **Nagging bis erledigt**: pro Erinnerung ein Intervall in Minuten und optional eine
   Höchstzahl an Wiederholungen (0 = unbegrenzt).
-- **Wiederkehrende Regeln**: täglich, wöchentlich (mit Wochentagen), monatlich am Datum,
+- **Wiederkehrende Regeln**: täglich, werktags (Mo–Fr), wöchentlich (mit Wochentagen), monatlich am Datum,
   monatlich am n-ten Wochentag (z. B. jeden 3. Mittwoch), jeweils „alle N" Tage/Wochen/Monate.
 - **Erledigt oder Verschieben**: In der Benachrichtigung stehen *Erledigt* und
   *Verschieben…*. *Verschieben…* (und Tippen auf die Meldung) öffnet einen Bildschirm mit

@@ -8,6 +8,9 @@ import java.time.temporal.TemporalAdjusters
 
 object Recurrence {
 
+    /** Wochentagsmaske Mo–Fr: „Werktags" ist wöchentlich mit diesen Tagen (Feiertage zählen mit). */
+    const val WORKDAYS = 0b0011111
+
     /**
      * Nächster Termin der Serie, der nach [after] liegt, oder null bei einmaligen Erinnerungen.
      *

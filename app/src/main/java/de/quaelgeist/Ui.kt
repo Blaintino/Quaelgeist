@@ -123,6 +123,8 @@ private fun typeLabel(t: RepeatType) = when (t) {
     RepeatType.MONTHLY_NTH_WEEKDAY -> "Monatlich (z. B. 3. Mittwoch)"
 }
 
+private const val WORKDAYS_LABEL = "Werktags (Mo–Fr)"
+
 private fun unitLabel(t: RepeatType) = when (t) {
     RepeatType.DAILY -> "Tage"
     RepeatType.WEEKLY -> "Wochen"
@@ -135,6 +137,7 @@ private fun repeatLabel(r: Reminder): String {
         RepeatType.NONE -> ""
         RepeatType.DAILY -> if (n == 1) "täglich" else "alle $n Tage"
         RepeatType.WEEKLY -> {
+            if (n == 1 && r.weekdayMask == Recurrence.WORKDAYS) return "werktags (Mo–Fr)"
             val base = if (n == 1) "wöchentlich" else "alle $n Wochen"
             val days = DAY_NAMES.filterIndexed { i, _ -> (r.weekdayMask and (1 shl i)) != 0 }
             if (days.isEmpty()) base else "$base (${days.joinToString(", ")})"
@@ -614,13 +617,29 @@ private fun EditDialog(
 
                     Text("Wiederholung", style = MaterialTheme.typography.labelLarge)
                     Box {
-                        OutlinedButton(onClick = { menu = true }) { Text(typeLabel(type)) }
+                        // „Werktags" ist eine Voreinstellung für wöchentlich Mo–Fr, kein eigener Typ.
+                        val workdays = type == RepeatType.WEEKLY && every == "1" &&
+                            mask == Recurrence.WORKDAYS
+                        OutlinedButton(onClick = { menu = true }) {
+                            Text(if (workdays) WORKDAYS_LABEL else typeLabel(type))
+                        }
                         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                             RepeatType.entries.forEach { t ->
                                 DropdownMenuItem(
                                     text = { Text(typeLabel(t)) },
                                     onClick = { type = t; menu = false },
                                 )
+                                if (t == RepeatType.DAILY) {
+                                    DropdownMenuItem(
+                                        text = { Text(WORKDAYS_LABEL) },
+                                        onClick = {
+                                            type = RepeatType.WEEKLY
+                                            every = "1"
+                                            mask = Recurrence.WORKDAYS
+                                            menu = false
+                                        },
+                                    )
+                                }
                             }
                         }
                     }
