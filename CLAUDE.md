@@ -84,6 +84,9 @@ Cloud-Sessions haben weder Emulator noch Handy.
 - Wöchentlich mit Wochentagsauswahl: beim Speichern verschiebt `Recurrence.alignStart` den
   Starttermin auf den ersten ausgewählten Tag, falls der gewählte Starttag selbst nicht
   dabei ist.
+- „Werktags (Mo–Fr)“ ist kein eigener `RepeatType`, sondern eine Voreinstellung im Editor:
+  `WEEKLY`, `repeatEvery = 1`, `weekdayMask = Recurrence.WORKDAYS`. Feiertage werden nicht
+  berücksichtigt (kein Netzwerk, keine Feiertagsliste).
 - `BootReceiver` plant nach Neustart, App-Update und Zeitänderung alle Alarme neu.
 - Tabs in `App()`: `TAB_RECURRING` (offen, `repeatType != NONE`), `TAB_ONCE` (offen,
   einmalig), `TAB_ARCHIVE` (`done`). Start-Tab beim Öffnen ist `TAB_ONCE` (Wunsch des Nutzers). `save()` wechselt in den Tab der gespeicherten

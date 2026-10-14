@@ -77,6 +77,25 @@ class RecurrenceTest {
     }
 
     @Test
+    fun werktagsUeberspringtWochenende() {
+        // Do 8.10.2026 → Fr 9., Mo 12., Di 13.
+        val r = reminder(ms(2026, 10, 8), RepeatType.WEEKLY, mask = Recurrence.WORKDAYS)
+        assertEquals(
+            listOf(ms(2026, 10, 9), ms(2026, 10, 12), ms(2026, 10, 13)),
+            series(r, 3),
+        )
+    }
+
+    @Test
+    fun werktagsStartAmSamstagBeginntMontag() {
+        val r = Recurrence.alignStart(
+            reminder(ms(2026, 10, 10, 7, 0), RepeatType.WEEKLY, mask = Recurrence.WORKDAYS),
+            zone,
+        )
+        assertEquals(ms(2026, 10, 12, 7, 0), r.baseAt)
+    }
+
+    @Test
     fun alleZweiWochenUeberMonatsgrenze() {
         // Mo 26.10.2026, Mo + Mi, alle 2 Wochen
         val r = reminder(ms(2026, 10, 26), RepeatType.WEEKLY, every = 2, mask = MO or MI)
