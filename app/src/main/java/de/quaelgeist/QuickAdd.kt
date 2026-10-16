@@ -29,6 +29,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -125,10 +126,10 @@ private fun QuickAddDialog(onClose: () -> Unit) {
                 // Die Beschriftung zeigt, welcher Tag gemeint ist.
                 val (first, second) = QuickTimes.PRESETS.map { QuickTimes.atTime(now, it) }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TimeButton(presetLabel(first, now), ready, Modifier.weight(1f)) {
+                    TimeButton(timeLabel(first), ready, Modifier.weight(1f), dayLabel(first, now)) {
                         saveAt(QuickTimes.atTime(ZonedDateTime.now(zone), first.toLocalTime()))
                     }
-                    TimeButton(presetLabel(second, now), ready, Modifier.weight(1f)) {
+                    TimeButton(timeLabel(second), ready, Modifier.weight(1f), dayLabel(second, now)) {
                         saveAt(QuickTimes.atTime(ZonedDateTime.now(zone), second.toLocalTime()))
                     }
                 }
@@ -164,15 +165,29 @@ private fun QuickAddDialog(onClose: () -> Unit) {
     )
 }
 
-/** „Heute 17:00" oder „Morgen 9:30". */
-private fun presetLabel(at: ZonedDateTime, now: ZonedDateTime): String {
-    val day = if (at.toLocalDate() == now.toLocalDate()) "Heute" else "Morgen"
-    return "$day " + at.format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT))
-}
+/** „Heute" oder „Morgen" – je nachdem, ob die Uhrzeit heute schon vorbei ist. */
+private fun dayLabel(at: ZonedDateTime, now: ZonedDateTime): String =
+    if (at.toLocalDate() == now.toLocalDate()) "Heute" else "Morgen"
 
+private fun timeLabel(at: ZonedDateTime): String =
+    at.format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT))
+
+/**
+ * [day] steht klein über der Uhrzeit: In einer Zeile passte „Morgen 9:30" nicht auf den
+ * halb breiten Knopf und wurde nach „Morgen" abgeschnitten.
+ */
 @Composable
-private fun TimeButton(label: String, enabled: Boolean, modifier: Modifier, onClick: () -> Unit) {
+private fun TimeButton(
+    label: String,
+    enabled: Boolean,
+    modifier: Modifier,
+    day: String? = null,
+    onClick: () -> Unit,
+) {
     FilledTonalButton(onClick = onClick, enabled = enabled, modifier = modifier) {
-        Text(label, maxLines = 1)
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            if (day != null) Text(day, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+            Text(label, maxLines = 1, softWrap = false)
+        }
     }
 }
