@@ -1,8 +1,11 @@
 package de.quaelgeist
 
 import android.content.Context
+import java.time.DayOfWeek
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
+import java.time.temporal.TemporalAdjusters
 
 /** Aktionen auf Erinnerungen – gemeinsam genutzt von Benachrichtigung und Oberfläche. */
 object Actions {
@@ -39,21 +42,25 @@ object Actions {
     fun snooze(ctx: Context, id: Long, minutes: Int, expectedBase: Long? = null) =
         snoozeUntil(ctx, id, System.currentTimeMillis() + minutes * 60_000L, expectedBase)
 
-    /** Morgen zur selben Uhrzeit wie der ursprüngliche Termin. */
+    /**
+     * Morgen zur Uhrzeit der Serie an diesem Tag ([Recurrence.timeOn]: normale Uhrzeit, am
+     * Wochenende ggf. die Wochenend-Uhrzeit; bei einmaligen die des Termins).
+     */
     fun snoozeTomorrow(ctx: Context, id: Long, expectedBase: Long? = null) {
         val r = ReminderStore(ctx).get(id) ?: return
         val zone = ZoneId.systemDefault()
-        val time = Instant.ofEpochMilli(r.baseAt).atZone(zone).toLocalTime()
-        val tomorrow = Instant.now().atZone(zone).plusDays(1).with(time)
+        val day = LocalDate.now(zone).plusDays(1)
+        val tomorrow = day.atTime(Recurrence.timeOn(r, day, zone)).atZone(zone)
         snoozeUntil(ctx, id, tomorrow.toInstant().toEpochMilli(), expectedBase)
     }
 
-    /** Nächster Montag zur selben Uhrzeit wie der ursprüngliche Termin. */
+    /** Nächster Montag zur normalen Uhrzeit der Serie bzw. des Termins. */
     fun snoozeNextMonday(ctx: Context, id: Long, expectedBase: Long? = null) {
         val r = ReminderStore(ctx).get(id) ?: return
         val zone = ZoneId.systemDefault()
-        val time = Instant.ofEpochMilli(r.baseAt).atZone(zone).toLocalTime()
-        val monday = QuickTimes.nextMonday(Instant.now().atZone(zone), time)
+        val now = Instant.now().atZone(zone)
+        val mondayDate = now.toLocalDate().with(TemporalAdjusters.next(DayOfWeek.MONDAY))
+        val monday = QuickTimes.nextMonday(now, Recurrence.timeOn(r, mondayDate, zone))
         snoozeUntil(ctx, id, monday.toInstant().toEpochMilli(), expectedBase)
     }
 

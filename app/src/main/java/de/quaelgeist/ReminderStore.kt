@@ -77,6 +77,8 @@ private fun Reminder.toJson() = JSONObject().apply {
     put("nagCount", nagCount)
     put("done", done)
     put("doneAt", doneAt)
+    put("weekendMode", weekendMode.name)
+    put("weekendTimeMin", weekendTimeMin)
 }
 
 private fun JSONObject.toReminder() = Reminder(
@@ -94,4 +96,7 @@ private fun JSONObject.toReminder() = Reminder(
     nagCount = optInt("nagCount", 0),
     done = optBoolean("done", false),
     doneAt = optLong("doneAt", 0),
+    weekendMode = runCatching { WeekendMode.valueOf(optString("weekendMode", "NORMAL")) }
+        .getOrDefault(WeekendMode.NORMAL),
+    weekendTimeMin = optInt("weekendTimeMin", Reminder.DEFAULT_WEEKEND_TIME_MIN),
 )

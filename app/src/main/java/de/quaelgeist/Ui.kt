@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -139,6 +140,22 @@ private fun unitLabel(t: RepeatType) = when (t) {
 }
 
 private fun repeatLabel(r: Reminder): String {
+    val base = ruleLabel(r)
+    if (!Recurrence.weekendApplies(r)) return base
+    return when (r.weekendMode) {
+        WeekendMode.SKIP -> "$base · Wochenende aus"
+        WeekendMode.OTHER_TIME -> "$base · Wochenende ${minutesLabel(r.weekendTimeMin)}"
+        WeekendMode.NORMAL -> base
+    }
+}
+
+private fun minutesLabel(min: Int): String =
+    LocalTime.of(min / 60 % 24, min % 60).format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT))
+
+/** Bits für Samstag und Sonntag in [Reminder.weekdayMask]. */
+private const val WEEKEND_BITS = 0b1100000
+
+private fun ruleLabel(r: Reminder): String {
     val n = r.repeatEvery
     return when (r.repeatType) {
         RepeatType.NONE -> ""
@@ -522,15 +539,27 @@ private fun EditDialog(
 ) {
     val ctx = LocalContext.current
     var title by remember { mutableStateOf(initial?.title ?: prefillTitle) }
-    var at by remember { mutableStateOf(initial?.baseAt ?: defaultAt()) }
+    // Liegt der aktuelle Termin am Wochenende mit eigener Uhrzeit, zeigt der Editor trotzdem die
+    // normale Uhrzeit (aus anchorAt) – sie ist die Hauptuhrzeit der Serie.
+    var at by remember { mutableStateOf(initial?.let(::editorStart) ?: defaultAt()) }
     var type by remember { mutableStateOf(initial?.repeatType ?: prefillType) }
     var every by remember { mutableStateOf((initial?.repeatEvery ?: 1).toString()) }
     var mask by remember { mutableStateOf(initial?.weekdayMask ?: 0) }
     var nag by remember { mutableStateOf((initial?.nagIntervalMin ?: 10).toString()) }
     var maxNags by remember { mutableStateOf((initial?.maxNags ?: 0).toString()) }
     var menu by remember { mutableStateOf(false) }
+    var weekendMode by remember { mutableStateOf(initial?.weekendMode ?: WeekendMode.NORMAL) }
+    var weekendMin by remember {
+        mutableIntStateOf(initial?.weekendTimeMin ?: Reminder.DEFAULT_WEEKEND_TIME_MIN)
+    }
 
     val dt = Instant.ofEpochMilli(at).atZone(zone)
+    // Wochenend-Modus nur, wenn die Regel überhaupt Sa/So trifft; „Aussetzen" nur bei täglich
+    // (wöchentlich: Sa/So einfach abwählen).
+    val effectiveMask = if (mask != 0) mask else 1 shl (dt.dayOfWeek.value - 1)
+    val weekendPossible = type == RepeatType.DAILY ||
+        (type == RepeatType.WEEKLY && effectiveMask and WEEKEND_BITS != 0)
+    val skipPossible = type == RepeatType.DAILY
     val number = KeyboardOptions(keyboardType = KeyboardType.Number)
 
     fun save() {
@@ -550,6 +579,12 @@ private fun EditDialog(
                 weekdayMask = if (type == RepeatType.WEEKLY) mask else 0,
                 nagIntervalMin = nag.toIntOrNull() ?: 0,
                 maxNags = maxNags.toIntOrNull() ?: 0,
+                weekendMode = when {
+                    !weekendPossible -> WeekendMode.NORMAL
+                    weekendMode == WeekendMode.SKIP && !skipPossible -> WeekendMode.NORMAL
+                    else -> weekendMode
+                },
+                weekendTimeMin = weekendMin,
             ).let(Recurrence::alignStart),
         )
     }
@@ -682,6 +717,41 @@ private fun EditDialog(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
+                    if (weekendPossible) {
+                        Text("Am Wochenende", style = MaterialTheme.typography.labelLarge)
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.horizontalScroll(rememberScrollState()),
+                        ) {
+                            WeekendChip("Normal", weekendMode == WeekendMode.NORMAL) {
+                                weekendMode = WeekendMode.NORMAL
+                            }
+                            if (skipPossible) {
+                                WeekendChip("Aussetzen", weekendMode == WeekendMode.SKIP) {
+                                    weekendMode = WeekendMode.SKIP
+                                }
+                            }
+                            WeekendChip("Andere Uhrzeit", weekendMode == WeekendMode.OTHER_TIME) {
+                                weekendMode = WeekendMode.OTHER_TIME
+                            }
+                        }
+                        if (weekendMode == WeekendMode.OTHER_TIME) {
+                            OutlinedButton(onClick = {
+                                TimePickerDialog(
+                                    ctx,
+                                    { _, h, min -> weekendMin = h * 60 + min },
+                                    weekendMin / 60, weekendMin % 60, DateFormat.is24HourFormat(ctx),
+                                ).show()
+                            }) { Text("Sa/So um ${minutesLabel(weekendMin)}") }
+                        }
+                        if (type == RepeatType.WEEKLY) {
+                            Text(
+                                "Zum Aussetzen Sa/So oben abwählen.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
 
                     Text("Nagging", style = MaterialTheme.typography.labelLarge)
                     OutlinedTextField(
@@ -704,6 +774,19 @@ private fun EditDialog(
             }
         }
     }
+}
+
+@Composable
+private fun WeekendChip(label: String, selected: Boolean, onClick: () -> Unit) {
+    FilterChip(selected = selected, onClick = onClick, label = { Text(label) })
+}
+
+/** Start im Editor: am Wochenende mit eigener Uhrzeit die normale Uhrzeit der Serie zeigen. */
+private fun editorStart(r: Reminder): Long {
+    val base = Instant.ofEpochMilli(r.baseAt).atZone(zone)
+    if (!Recurrence.weekendApplies(r) || !Recurrence.isWeekend(base.toLocalDate())) return r.baseAt
+    val time = Instant.ofEpochMilli(r.anchorAt).atZone(zone).toLocalTime()
+    return base.toLocalDate().atTime(time).atZone(zone).toInstant().toEpochMilli()
 }
 
 @Composable

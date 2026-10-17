@@ -3,6 +3,7 @@ package de.quaelgeist
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.ZoneId
 import java.time.temporal.TemporalAdjusters
 
@@ -18,28 +19,80 @@ object Recurrence {
      * Tag im Monat und „n-ter Wochentag" stammen dagegen immer aus [Reminder.anchorAt]. So
      * rutscht eine Serie weder nach einem kurzen Monat (31. → 30.) noch nach einer
      * Zeitumstellung (02:30 → 03:30) dauerhaft auf einen anderen Wert.
+     *
+     * Wochenend-Modus (nur täglich/wöchentlich): [WeekendMode.SKIP] überspringt Sa/So,
+     * [WeekendMode.OTHER_TIME] nimmt dort [Reminder.weekendTimeMin]. Die normale Uhrzeit bleibt
+     * in [Reminder.anchorAt], die Serie rutscht also nach dem Wochenende nicht auf die andere.
      */
     fun next(r: Reminder, after: Long, zone: ZoneId = ZoneId.systemDefault()): Long? {
         if (r.repeatType == RepeatType.NONE) return null
         val anchor = Instant.ofEpochMilli(r.anchorAt).atZone(zone)
-        val time = anchor.toLocalTime()
         var date = Instant.ofEpochMilli(r.baseAt).atZone(zone).toLocalDate()
-        var result: Long
         var guard = 0
-        do {
+        while (guard++ < 5000) {
             date = step(r, date, anchor.toLocalDate())
-            result = date.atTime(time).atZone(zone).toInstant().toEpochMilli()
-            guard++
-        } while (result <= after && guard < 5000)
-        return result
+            if (skips(r, date)) continue
+            val result = date.atTime(timeOn(r, date, zone)).atZone(zone).toInstant().toEpochMilli()
+            if (result > after) return result
+        }
+        // Nur bei unsinnigen Daten (z. B. alles übersprungen): lieber ohne Wochenend-Regel
+        // weiterlaufen als die Serie zu beenden.
+        return if (r.weekendMode != WeekendMode.NORMAL) {
+            next(r.copy(weekendMode = WeekendMode.NORMAL), after, zone)
+        } else {
+            date.atTime(anchor.toLocalTime()).atZone(zone).toInstant().toEpochMilli()
+        }
     }
+
+    fun isWeekend(d: LocalDate): Boolean =
+        d.dayOfWeek == DayOfWeek.SATURDAY || d.dayOfWeek == DayOfWeek.SUNDAY
+
+    /** Gilt der Wochenend-Modus für diese Wiederholungsart? */
+    fun weekendApplies(r: Reminder): Boolean =
+        r.weekendMode != WeekendMode.NORMAL &&
+            (r.repeatType == RepeatType.DAILY || r.repeatType == RepeatType.WEEKLY)
+
+    private fun skips(r: Reminder, d: LocalDate) =
+        weekendApplies(r) && r.weekendMode == WeekendMode.SKIP && isWeekend(d)
+
+    /**
+     * Uhrzeit der Serie am Tag [d]: am Wochenende ggf. die Wochenend-Uhrzeit, sonst die aus
+     * [Reminder.anchorAt]. Auch für Verschieben auf „Morgen" oder „Montag".
+     */
+    fun timeOn(r: Reminder, d: LocalDate, zone: ZoneId = ZoneId.systemDefault()): LocalTime =
+        if (weekendApplies(r) && r.weekendMode == WeekendMode.OTHER_TIME && isWeekend(d)) {
+            LocalTime.of(r.weekendTimeMin / 60 % 24, r.weekendTimeMin % 60)
+        } else {
+            Instant.ofEpochMilli(r.anchorAt).atZone(zone).toLocalTime()
+        }
 
     /**
      * Wöchentliche Serie mit Wochentagsauswahl, deren Startdatum selbst nicht ausgewählt ist
      * (z. B. Start Mittwoch, Auswahl Mo + Fr): Termin auf den ersten passenden Tag ab dem
      * Startdatum verschieben, sonst käme die erste Meldung an einem nicht gewählten Tag.
      */
-    fun alignStart(r: Reminder, zone: ZoneId = ZoneId.systemDefault()): Reminder {
+    fun alignStart(r: Reminder, zone: ZoneId = ZoneId.systemDefault()): Reminder =
+        alignWeekend(alignWeekdays(r, zone), zone)
+
+    /**
+     * Starttermin auf einem Wochenende: bei [WeekendMode.SKIP] auf Montag, bei
+     * [WeekendMode.OTHER_TIME] zur Wochenend-Uhrzeit. [Reminder.anchorAt] behält die normale
+     * Uhrzeit (aus [Reminder.baseAt], wie im Editor eingegeben).
+     */
+    private fun alignWeekend(r: Reminder, zone: ZoneId): Reminder {
+        if (!weekendApplies(r)) return r
+        val start = Instant.ofEpochMilli(r.baseAt).atZone(zone)
+        if (!isWeekend(start.toLocalDate())) return r
+        val time = start.toLocalTime()
+        var date = start.toLocalDate()
+        if (r.weekendMode == WeekendMode.SKIP) while (isWeekend(date)) date = date.plusDays(1)
+        val anchor = date.atTime(time).atZone(zone).toInstant().toEpochMilli()
+        val withAnchor = r.copy(anchorAt = anchor)
+        val at = date.atTime(timeOn(withAnchor, date, zone)).atZone(zone).toInstant().toEpochMilli()
+        return withAnchor.copy(baseAt = at, fireAt = at)
+    }
+
+    private fun alignWeekdays(r: Reminder, zone: ZoneId): Reminder {
         if (r.repeatType != RepeatType.WEEKLY || r.weekdayMask == 0) return r
         val start = Instant.ofEpochMilli(r.baseAt).atZone(zone)
         if (r.weekdayMask and dayBit(start.dayOfWeek) != 0) return r

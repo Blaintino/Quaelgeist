@@ -93,6 +93,14 @@ Cloud-Sessions haben weder Emulator noch Handy.
 - „Werktags (Mo–Fr)“ ist kein eigener `RepeatType`, sondern eine Voreinstellung im Editor:
   `WEEKLY`, `repeatEvery = 1`, `weekdayMask = Recurrence.WORKDAYS`. Feiertage werden nicht
   berücksichtigt (kein Netzwerk, keine Feiertagsliste).
+- Wochenend-Modus (`Reminder.weekendMode`, `weekendTimeMin`, Vorgabe 7:00): nur für
+  `DAILY` und `WEEKLY` (`Recurrence.weekendApplies`). `SKIP` überspringt Sa/So in
+  `Recurrence.next` (Rhythmus „alle N Tage“ läuft weiter), `OTHER_TIME` nimmt am Wochenende
+  die eigene Uhrzeit (`Recurrence.timeOn`); die normale Uhrzeit bleibt in `anchorAt`.
+  `alignStart` rückt einen Start am Wochenende auf Montag bzw. die Wochenend-Uhrzeit. Im
+  Editor: „Aussetzen“ nur bei täglich (wöchentlich: Sa/So abwählen), Abschnitt nur, wenn die
+  Regel Sa/So trifft; am Wochenende zeigt der Editor die normale Uhrzeit (`editorStart`).
+  Verschieben auf Morgen/Montag nimmt `Recurrence.timeOn` des Zieltags. Nags unverändert.
 - `BootReceiver` plant nach Neustart, App-Update und Zeitänderung alle Alarme neu.
 - Tabs in `App()`: `TAB_RECURRING` (offen, `repeatType != NONE`), `TAB_ONCE` (offen,
   einmalig), `TAB_ARCHIVE` (`done`). Start-Tab beim Öffnen ist `TAB_ONCE` (Wunsch des Nutzers). `save()` wechselt in den Tab der gespeicherten
