@@ -206,4 +206,87 @@ class RecurrenceTest {
         val now = ms(2026, 10, 7, 12, 0) // Mittwoch
         assertEquals(ms(2026, 10, 9), Recurrence.next(r, now, zone))
     }
+
+    // ---- Wochenend-Modus (Oktober 2026: 16. = Freitag, 17./18. = Sa/So, 25. = Zeitumstellung)
+
+    private fun weekend(at: Long, mode: WeekendMode, every: Int = 1, type: RepeatType = RepeatType.DAILY, mask: Int = 0) =
+        reminder(at, type, every = every, mask = mask).copy(weekendMode = mode, weekendTimeMin = 7 * 60)
+
+    @Test
+    fun wochenendeAussetzen() {
+        val r = weekend(ms(2026, 10, 15), WeekendMode.SKIP) // Donnerstag 9:00
+        assertEquals(
+            listOf(ms(2026, 10, 16), ms(2026, 10, 19), ms(2026, 10, 20)),
+            series(r, 3),
+        )
+    }
+
+    @Test
+    fun wochenendeAndereUhrzeitUndZurueck() {
+        val r = weekend(ms(2026, 10, 16), WeekendMode.OTHER_TIME) // Freitag 9:00
+        assertEquals(
+            listOf(ms(2026, 10, 17, 7, 0), ms(2026, 10, 18, 7, 0), ms(2026, 10, 19), ms(2026, 10, 20)),
+            series(r, 4),
+        )
+    }
+
+    @Test
+    fun wochenendeAussetzenAlleZweiTageBehaeltRhythmus() {
+        // Do 15. → (Sa 17. entfällt) → Mo 19. → Mi 21. → Fr 23. → (So 25. entfällt) → Di 27.
+        val r = weekend(ms(2026, 10, 15), WeekendMode.SKIP, every = 2)
+        assertEquals(
+            listOf(ms(2026, 10, 19), ms(2026, 10, 21), ms(2026, 10, 23), ms(2026, 10, 27)),
+            series(r, 4),
+        )
+    }
+
+    @Test
+    fun wochenendeUeberZeitumstellung() {
+        val r = weekend(ms(2026, 10, 23), WeekendMode.OTHER_TIME) // Freitag vor der Umstellung
+        val s = series(r, 3).map(::zdt)
+        assertEquals(listOf(7, 7, 9), s.map { it.hour })
+        assertEquals(listOf(24, 25, 26), s.map { it.dayOfMonth })
+    }
+
+    @Test
+    fun wochenendeStartAmSamstag() {
+        val skip = Recurrence.alignStart(weekend(ms(2026, 10, 17), WeekendMode.SKIP), zone)
+        assertEquals(ms(2026, 10, 19), skip.baseAt)
+
+        val other = Recurrence.alignStart(weekend(ms(2026, 10, 17), WeekendMode.OTHER_TIME), zone)
+        assertEquals(ms(2026, 10, 17, 7, 0), other.baseAt)
+        assertEquals(other.baseAt, other.fireAt)
+        // Normale Uhrzeit bleibt im Anker: Montag wieder 9:00.
+        assertEquals(9, zdt(other.anchorAt).hour)
+        assertEquals(listOf(ms(2026, 10, 18, 7, 0), ms(2026, 10, 19)), series(other, 2))
+    }
+
+    @Test
+    fun wochenendeWoechentlichNurSamstagAndereUhrzeit() {
+        val sa = 1 shl 5
+        val r = Recurrence.alignStart(
+            weekend(ms(2026, 10, 17), WeekendMode.OTHER_TIME, type = RepeatType.WEEKLY, mask = MO or sa),
+            zone,
+        )
+        assertEquals(ms(2026, 10, 17, 7, 0), r.baseAt)
+        assertEquals(listOf(ms(2026, 10, 19), ms(2026, 10, 24, 7, 0)), series(r, 2))
+    }
+
+    @Test
+    fun wochenendModusGiltNichtFuerMonatlich() {
+        // 17.10.2026 ist ein Samstag; monatlich bleibt unberührt.
+        val r = weekend(ms(2026, 10, 17), WeekendMode.SKIP, type = RepeatType.MONTHLY_DAY)
+        assertEquals(ms(2026, 11, 17), Recurrence.next(r, r.baseAt, zone))
+        assertEquals(r, Recurrence.alignStart(r, zone))
+    }
+
+    @Test
+    fun uhrzeitFuerVerschiebenNachTag() {
+        val r = weekend(ms(2026, 10, 16), WeekendMode.OTHER_TIME)
+        assertEquals(7, Recurrence.timeOn(r, java.time.LocalDate.of(2026, 10, 17), zone).hour)
+        assertEquals(9, Recurrence.timeOn(r, java.time.LocalDate.of(2026, 10, 19), zone).hour)
+        val once = reminder(ms(2026, 10, 16, 14, 30), RepeatType.NONE)
+            .copy(weekendMode = WeekendMode.OTHER_TIME)
+        assertEquals(14, Recurrence.timeOn(once, java.time.LocalDate.of(2026, 10, 17), zone).hour)
+    }
 }
