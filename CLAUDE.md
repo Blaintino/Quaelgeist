@@ -58,6 +58,12 @@ Cloud-Sessions haben weder Emulator noch Handy.
   Uhrzeit aus `baseAt`, heute Montag → in einer Woche), Uhrzeit…, Anderer Tag… (Datum, dann
   Uhrzeit; alles reines Snooze über `Actions.snoozeUntil`). „In der App bearbeiten“ startet
   `MainActivity` mit `EXTRA_EDIT_ID` (`editRequest`) und öffnet den Editor.
+- `NagActivity` mit mehreren offenen Erinnerungen (Wunsch des Nutzers, Probephase – eine der
+  beiden Varianten fällt evtl. wieder weg, daher getrennt schaltbar): `AUTO_ADVANCE` (nach
+  Erledigt/Verschieben die nächste offene zeigen statt schließen, Hinweis „Danach noch n
+  offen“) und `SHOW_OTHERS` (Liste `OtherOpen` unten, Tippen wechselt). Offen =
+  `OpenReminders.others` (= `DueGroups.isOverdue`, ohne die aktuelle, älteste zuerst).
+  Direkt in die Mitteilungszentrale springen geht nicht (keine öffentliche API).
 - Übersicht (Tabs Wiederkehrend und Einmalig) in Abschnitte nach `fireAt` geteilt
   (`DueGroups.kt`, Tests `DueGroupsTest`): Überfällig / Heute / Morgen / Diese Woche (bis
   Sonntag) / Ab nächster Woche, leere entfallen (Wunsch des Nutzers). Überfällig =
