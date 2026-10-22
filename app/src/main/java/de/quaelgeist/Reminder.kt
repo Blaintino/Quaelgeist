@@ -5,12 +5,19 @@ enum class RepeatType { NONE, DAILY, WEEKLY, MONTHLY_DAY, MONTHLY_NTH_WEEKDAY }
 /** Wochenend-Modus für tägliche/wöchentliche Serien (siehe [Recurrence.timeOn]). */
 enum class WeekendMode { NORMAL, SKIP, OTHER_TIME }
 
+/** Orts-Erinnerung: beim Ankommen oder beim Verlassen (siehe [GeoLogic]). */
+enum class PlaceTrigger { ARRIVE, LEAVE }
+
 /**
  * baseAt  = geplanter Termin (bei Wiederholungen der aktuelle Termin der Serie)
  * fireAt  = Zeitpunkt der nächsten Benachrichtigung (Termin, verschobener Termin oder nächster Nag)
  * Erledigte einmalige Erinnerungen ([done]) stehen im Archiv-Tab.
  * anchorAt = erster Termin der Serie; liefert Uhrzeit, Tag im Monat und „n-ter Wochentag"
  *            für die Wiederholungsregel (siehe [Recurrence.next])
+ *
+ * Orts-Erinnerungen ([placeId] != 0, nur einmalig): Solange [placeArmed], wartet sie ohne
+ * Zeit-Alarm auf Ankommen/Verlassen ([GeoWatch]). Beim Auslösen werden baseAt/fireAt auf den
+ * Auslösezeitpunkt gesetzt, danach nervt sie wie jede andere Erinnerung.
  */
 data class Reminder(
     val id: Long,
@@ -29,7 +36,15 @@ data class Reminder(
     val weekendMode: WeekendMode = WeekendMode.NORMAL,
     val weekendTimeMin: Int = DEFAULT_WEEKEND_TIME_MIN, // Minuten ab Mitternacht (OTHER_TIME)
     val link: String = "", // http(s)-Link oder leer; „Link öffnen" in der Meldung (siehe [Links])
+    val placeId: Long = 0, // 0 = Zeit-Erinnerung, sonst [Place.id]
+    val placeTrigger: PlaceTrigger = PlaceTrigger.ARRIVE,
+    val placeArmed: Boolean = false, // wartet auf den Ort (noch nicht ausgelöst)
+    val windowStartMin: Int = -1, // Zeitfenster der Ortserkennung, Minuten ab Mitternacht; -1 = immer
+    val windowEndMin: Int = -1,
+    val checkIntervalMin: Int = GeoLogic.DEFAULT_INTERVAL_MIN, // Standort-Prüfintervall
 ) {
+    val isPlace: Boolean get() = placeId != 0L
+
     /** Darf nach der aktuellen Meldung noch eine weitere Wiederholung folgen? */
     val canNag: Boolean get() = nagIntervalMin > 0 && (maxNags == 0 || nagCount < maxNags)
 

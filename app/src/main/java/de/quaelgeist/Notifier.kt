@@ -146,7 +146,8 @@ object Notifier {
 
         val time = DateFormat.getTimeFormat(ctx).format(Date(r.baseAt))
         val text = buildString {
-            append("Fällig: ").append(time)
+            if (r.isPlace) append(placeLabel(ctx, r)).append(" · ").append(time)
+            else append("Fällig: ").append(time)
             if (r.nagCount > 0) append(" · ").append(r.nagCount + 1).append(". Erinnerung")
         }
         val screen = nagScreenIntent(ctx, r)
@@ -217,6 +218,15 @@ object Notifier {
                 effect,
                 AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM).build(),
             )
+        }
+    }
+
+    /** „Angekommen: Zuhause“ / „Verlassen: Arbeit“ für Meldung und Verschieben-Bildschirm. */
+    fun placeLabel(ctx: Context, r: Reminder): String {
+        val name = PlaceStore(ctx).get(r.placeId)?.name ?: "Ort"
+        return when (r.placeTrigger) {
+            PlaceTrigger.ARRIVE -> "Angekommen: $name"
+            PlaceTrigger.LEAVE -> "Verlassen: $name"
         }
     }
 

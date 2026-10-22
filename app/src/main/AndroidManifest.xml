@@ -9,10 +9,22 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <!-- Orts-Erinnerungen (GeoWatch): Standort und WLAN-Name, ohne Internet. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
-    <!-- Für den Knopf „Huawei Health öffnen" in der Prüfliste. -->
+    <uses-feature android:name="android.hardware.location" android:required="false" />
+    <uses-feature android:name="android.hardware.location.gps" android:required="false" />
+    <uses-feature android:name="android.hardware.location.network" android:required="false" />
+    <uses-feature android:name="android.hardware.wifi" android:required="false" />
+
+    <!-- Für die Knöpfe „Huawei Health öffnen" (Prüfliste) und „Google Maps" (Ort anlegen). -->
     <queries>
         <package android:name="com.huawei.health" />
+        <package android:name="com.google.android.apps.maps" />
     </queries>
 
     <application
@@ -30,6 +42,19 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Ort aus einer Karten-App teilen (Google Maps, OsmAnd …): öffnet „Neuer Ort“. -->
+        <activity-alias
+            android:name=".SharePlace"
+            android:exported="true"
+            android:label="Als Ort in Quälgeist"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+        </activity-alias>
 
         <!-- Erledigt/Verschieben-Bildschirm; bewusst nicht über dem Sperrbildschirm. -->
         <activity
@@ -76,6 +101,11 @@
 
         <receiver
             android:name=".ActionReceiver"
+            android:exported="false" />
+
+        <!-- Geofence, Standort-Updates, WLAN-Meldungen und Prüf-Alarm der Ortserkennung. -->
+        <receiver
+            android:name=".GeoReceiver"
             android:exported="false" />
 
         <receiver

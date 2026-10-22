@@ -1,10 +1,12 @@
 package de.quaelgeist
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.app.ActivityManager
 import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
+import android.location.LocationManager
 import android.net.Uri
 import android.os.Build
 import android.os.PowerManager
@@ -16,6 +18,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -41,12 +45,14 @@ import androidx.core.app.NotificationManagerCompat
 /**
  * Eine Voraussetzung für zuverlässiges Nagging.
  * [ok] = null: lässt sich nicht automatisch prüfen (nur Anleitung).
+ * [permission]: Der Knopf fragt diese Rechte direkt an statt [intent] zu öffnen.
  */
 data class Check(
     val title: String,
     val ok: Boolean?,
     val detail: String,
     val button: String? = null,
+    val permission: List<String>? = null,
     val intent: ((Context) -> Intent)? = null,
 )
 
@@ -113,7 +119,7 @@ object Reliability {
                 !am.isBackgroundRestricted,
                 "In den App-Infos unter „Akku“ darf die Hintergrundnutzung nicht gesperrt sein.",
                 "App-Infos öffnen",
-                ::appDetails,
+                intent = ::appDetails,
             )
         }
 
@@ -126,6 +132,9 @@ object Reliability {
                 "Einstellung öffnen",
             ) { Intent(Intent.ACTION_AUTO_REVOKE_PERMISSIONS, pkgUri(it)) }
         }
+
+        // Standort nur, wenn es Orts-Erinnerungen gibt (sonst braucht Quälgeist ihn nicht).
+        if (ReminderStore(ctx).all().any { it.isPlace && !it.done }) list += locationChecks(ctx)
 
         list += Check(
             "Samsung: „Nie schlafende Apps“",
@@ -154,6 +163,39 @@ object Reliability {
                 "Alarme erlaubt sind (Standard). Im Lautlos-Modus bleibt der Ton aus, " +
                 "vibriert wird trotzdem.",
         )
+        return list
+    }
+
+    private fun locationChecks(ctx: Context): List<Check> {
+        val list = mutableListOf<Check>()
+        list += Check(
+            "Standort: genau",
+            GeoWatch.hasFineLocation(ctx),
+            "Für Orts-Erinnerungen und um WLAN-Namen lesen zu dürfen.",
+            "Erlauben",
+            permission = listOf(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION,
+            ),
+        )
+        if (Build.VERSION.SDK_INT >= 29) {
+            list += Check(
+                "Standort: „Immer erlauben“",
+                GeoWatch.hasBackgroundLocation(ctx),
+                "Orte werden im Hintergrund erkannt. Erst „Standort: genau“ erlauben, dann hier " +
+                    "„Immer erlauben“ wählen.",
+                "Erlauben",
+                permission = listOf(Manifest.permission.ACCESS_BACKGROUND_LOCATION),
+            )
+        }
+        if (Build.VERSION.SDK_INT >= 28) {
+            list += Check(
+                "Standortdienst eingeschaltet",
+                ctx.getSystemService(LocationManager::class.java).isLocationEnabled,
+                "Ohne eingeschalteten Standort gibt Android weder Position noch WLAN-Namen heraus.",
+                "Einstellungen öffnen",
+            ) { Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS) }
+        }
         return list
     }
 
@@ -229,6 +271,14 @@ fun ReliabilityScreen(tick: Int, onBack: () -> Unit, contentPadding: PaddingValu
 @Composable
 private fun CheckCard(c: Check) {
     val ctx = LocalContext.current
+    // Nach der Antwort neu prüfen wie nach der Rückkehr aus den Systemeinstellungen.
+    val permission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions(),
+    ) { MainActivity.resumeTick.value = MainActivity.resumeTick.value + 1 }
+    fun press() {
+        if (c.permission != null) permission.launch(c.permission.toTypedArray())
+        else Reliability.open(ctx, c)
+    }
     val colors = MaterialTheme.colorScheme
     val (mark, color) = when (c.ok) {
         true -> "✓" to colors.primary
@@ -253,11 +303,11 @@ private fun CheckCard(c: Check) {
                 )
             }
             Text(c.detail, style = MaterialTheme.typography.bodyMedium)
-            if (c.button != null && c.intent != null) {
+            if (c.button != null && (c.intent != null || c.permission != null)) {
                 if (c.ok == false) {
-                    Button(onClick = { Reliability.open(ctx, c) }) { Text(c.button) }
-                } else {
-                    OutlinedButton(onClick = { Reliability.open(ctx, c) }) { Text(c.button) }
+                    Button(onClick = ::press) { Text(c.button) }
+                } else if (c.permission == null) {
+                    OutlinedButton(onClick = ::press) { Text(c.button) }
                 }
             }
         }

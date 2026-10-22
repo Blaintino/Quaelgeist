@@ -10,31 +10,39 @@ class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(ctx: Context, intent: Intent) {
         val id = intent.getLongExtra(Scheduler.EXTRA_ID, -1)
         if (id < 0) return
-        val store = ReminderStore(ctx)
-        val r = store.get(id) ?: return
-        if (r.done) return
+        fire(ctx, id)
+    }
 
-        // Zuerst die nächste Wiederholung sichern – falls beim Anzeigen etwas schiefgeht,
-        // reißt die Nag-Kette trotzdem nicht ab.
-        val canNag = r.canNag
-        val updated = if (canNag) {
-            r.copy(
-                nagCount = r.nagCount + 1,
-                fireAt = System.currentTimeMillis() + r.nagIntervalMin * 60_000L,
-            )
-        } else {
-            // Letzte Meldung: Serien rücken zum nächsten Termin vor, einmalige bleiben überfällig.
-            val next = Recurrence.next(r, System.currentTimeMillis())
-            if (next != null) r.copy(baseAt = next, fireAt = next, nagCount = 0) else r
+    companion object {
+        /** Meldung zeigen und nächsten Nag planen; auch für ausgelöste Orts-Erinnerungen. */
+        fun fire(ctx: Context, id: Long) {
+            val store = ReminderStore(ctx)
+            val r = store.get(id) ?: return
+            // Wartet noch auf den Ort: veralteter Zeit-Alarm.
+            if (r.done || r.placeArmed) return
+
+            // Zuerst die nächste Wiederholung sichern – falls beim Anzeigen etwas schiefgeht,
+            // reißt die Nag-Kette trotzdem nicht ab.
+            val canNag = r.canNag
+            val updated = if (canNag) {
+                r.copy(
+                    nagCount = r.nagCount + 1,
+                    fireAt = System.currentTimeMillis() + r.nagIntervalMin * 60_000L,
+                )
+            } else {
+                // Letzte Meldung: Serien rücken zum nächsten Termin vor, einmalige bleiben überfällig.
+                val next = Recurrence.next(r, System.currentTimeMillis())
+                if (next != null) r.copy(baseAt = next, fireAt = next, nagCount = 0) else r
+            }
+            if (updated != r) store.upsert(updated)
+            if (canNag || updated.fireAt != r.fireAt) Scheduler.schedule(ctx, updated)
+
+            // Mehrere gleichzeitig fällige Erinnerungen: jede bekommt ihre eigene Meldung,
+            // aber nur die erste klingelt und vibriert.
+            val alert = runCatching { Notifier.claimAlert(ctx) }.getOrDefault(true)
+            runCatching { Notifier.show(ctx, r, alert) }
+            if (alert) runCatching { Notifier.buzz(ctx) }
         }
-        if (updated != r) store.upsert(updated)
-        if (canNag || updated.fireAt != r.fireAt) Scheduler.schedule(ctx, updated)
-
-        // Mehrere gleichzeitig fällige Erinnerungen: jede bekommt ihre eigene Meldung,
-        // aber nur die erste klingelt und vibriert.
-        val alert = runCatching { Notifier.claimAlert(ctx) }.getOrDefault(true)
-        runCatching { Notifier.show(ctx, r, alert) }
-        if (alert) runCatching { Notifier.buzz(ctx) }
     }
 }
 

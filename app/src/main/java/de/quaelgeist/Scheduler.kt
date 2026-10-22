@@ -37,7 +37,8 @@ object Scheduler {
     fun schedule(ctx: Context, r: Reminder) {
         val am = ctx.getSystemService(AlarmManager::class.java)
         val pi = firePendingIntent(ctx, r.id)
-        if (r.done) {
+        // Wartende Orts-Erinnerungen haben keinen Zeit-Alarm (siehe [GeoWatch]).
+        if (r.done || r.placeArmed) {
             am.cancel(pi)
             return
         }
@@ -65,7 +66,9 @@ object Scheduler {
     fun rescheduleAll(ctx: Context) {
         val now = System.currentTimeMillis()
         ReminderStore(ctx).all()
-            .filter { !it.done && (it.fireAt > now || it.canNag) }
+            .filter { !it.done && !it.placeArmed && (it.fireAt > now || it.canNag) }
             .forEach { schedule(ctx, it) }
+        // Geofences und Standort-Updates überleben weder Neustart noch „Stopp erzwingen“.
+        runCatching { GeoWatch.replan(ctx) }
     }
 }
