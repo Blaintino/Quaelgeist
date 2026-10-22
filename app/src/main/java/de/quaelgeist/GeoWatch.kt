@@ -276,17 +276,19 @@ object GeoWatch {
         val places = store.all().filter { it.id in watched }
         if (places.isEmpty()) return
         val parts = mutableListOf<String>()
-        places.forEach { p ->
+        val results = places.mapNotNull { p ->
             val onWifi = Ssid.matches(ssid, p.ssids)
             val dist = loc?.let { distance(it, p) }
             parts += p.name + ": " + listOfNotNull(
                 dist?.let { "${it.toInt()} m" },
                 if (onWifi) "im WLAN" else null,
             ).ifEmpty { listOf("kein Messwert") }.joinToString(", ")
-            GeoLogic.classify(dist, loc?.accuracy, p.radiusM, onWifi)?.let { update(ctx, p, it, source) }
+            GeoLogic.classify(dist, loc?.accuracy, p.radiusM, onWifi)?.let { p to it }
         }
+        // Erst die Messung protokollieren, dann die Wechsel: Ursache steht vor der Wirkung.
         val accuracy = loc?.let { " (±${it.accuracy.toInt()} m, ${it.provider})" }.orEmpty()
         GeoLog.add(ctx, "$source$accuracy: ${parts.joinToString(" · ")}")
+        results.forEach { (p, presence) -> update(ctx, p, presence, source) }
     }
 
     /**
