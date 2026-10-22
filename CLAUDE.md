@@ -23,6 +23,15 @@ Cloud-Sessions haben weder Emulator noch Handy.
   Keystore einchecken oder in einer Cloud-Session erzeugen.
 - `versionCode` kommt aus `VERSION_CODE` (= `github.run_number` im CI).
 - Debug-Build: App-ID `de.quaelgeist.debug`, Name über den Manifest-Platzhalter `appLabel`.
+- Beta (Wunsch des Nutzers: neue Funktionen erst neben der funktionierenden App testen,
+  später als Update über Quälgeist): Entwicklung auf dem Branch `next`, `main` bleibt stabil
+  und Rückweg. `QUAELGEIST_BETA=true` (im CI nur auf `next`) → App-ID `de.quaelgeist.beta`,
+  Name „Quälgeist Beta“, Symbol `ic_launcher_beta` (Platzhalter `appIcon`), Release
+  `quaelgeist-beta-v<run_number>` (Obtainium `^quaelgeist-beta-v`), gleicher Keystore.
+  Feature-PRs zielen auf `next`. Weil `next` später als Update über `de.quaelgeist` mit
+  dessen echten Daten läuft, neue `Reminder`-Felder immer mit Vorgabe und `opt…` im
+  `ReminderStore` lesen. `taskAffinity` im Manifest über `${applicationId}`, sonst teilen sich
+  Beta und stabile App Aufgaben.
 
 ## Verhalten, das erhalten bleiben muss
 
@@ -51,7 +60,7 @@ Cloud-Sessions haben weder Emulator noch Handy.
     sie bei jedem Öffnen.
   - `Reliability.kt`: Prüfliste mit Systemeinstellungs-Links und Test-Erinnerung; neue
     Voraussetzungen dort ergänzen.
-- Benachrichtigung hat nur *Erledigt* und *Verschieben…*; Verschieben öffnet `NagActivity`
+- Benachrichtigung hat nur *Erledigt* und *Verschieben…* (mit Link zusätzlich *Link öffnen*); Verschieben öffnet `NagActivity`
   (Wunsch des Nutzers). Standard-Nag-Intervall 10 Minuten. *Erledigt* mit
   `setAuthenticationRequired(true)`: auf dem Sperrbildschirm erst nach dem Entsperren.
 - `NagActivity`: Verschieben um 10/30 Min, 1/3 Std, Morgen, Montag (`QuickTimes.nextMonday`,
@@ -74,6 +83,13 @@ Cloud-Sessions haben weder Emulator noch Handy.
   Chip) oder beim Verschieben „Anderer Tag…“ genutzt und liegt der Zeitpunkt nicht in der
   Zukunft, gilt der nächste Tag zu dieser Uhrzeit (`QuickTimes.onDayOrNext`). Unangetastete
   Termine beim Bearbeiten werden nicht verschoben.
+- Links (`Links.kt`, Tests `LinksTest`): optionales Feld `Reminder.link`, nur http(s)
+  (Wunsch des Nutzers). Beim Speichern (Editor und Schnelleingabe) wandert ein Link aus dem
+  Titel ins leere Linkfeld; besteht der Titel nur aus dem Link, bleibt er Titel. Mit Link
+  hat die Meldung einen dritten Knopf „Link öffnen“ (`OpenLinkActivity`, eine Activity, weil
+  Receiver ab Android 12 keine Activity starten dürfen): öffnet per `ACTION_VIEW` und hakt
+  danach über `Actions.markDone` ab (bei Serien: dieser Termin), mit
+  `setAuthenticationRequired(true)` wie *Erledigt*.
 - `AlarmReceiver`: plant zuerst die nächste Wiederholung (`nagCount`, `fireAt`), zeigt dann die
   Meldung.
   Nach der letzten erlaubten Meldung rücken Serien zum nächsten Termin vor, einmalige bleiben

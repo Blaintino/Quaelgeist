@@ -96,6 +96,23 @@ object Notifier {
     }
 
     /**
+     * „Link öffnen": eine Activity statt eines Broadcasts, weil Android ab Version 12 aus einem
+     * Receiver heraus keine Activity (den Browser) mehr starten darf.
+     */
+    private fun openLinkIntent(ctx: Context, r: Reminder): PendingIntent {
+        val intent = Intent(ctx, OpenLinkActivity::class.java).apply {
+            data = Uri.parse("quaelgeist://link/${r.id}")
+            putExtra(Scheduler.EXTRA_ID, r.id)
+            putExtra(Actions.EXTRA_BASE, r.baseAt)
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        }
+        return PendingIntent.getActivity(
+            ctx, 0, intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+    }
+
+    /**
      * Darf diese Meldung klingeln und vibrieren? Nein, wenn eine andere Erinnerung das gerade
      * erst getan hat (siehe [ALERT_WINDOW_MS]). Alarm-Broadcasts laufen nacheinander im
      * Hauptthread, daher reicht ein einfacher Zeitstempel. commit() wie im [ReminderStore].
@@ -158,6 +175,17 @@ object Notifier {
                     .build(),
             )
             .addAction(0, "Verschieben…", screen)
+            .apply {
+                // Dritter Knopf nur mit Link. Öffnen hakt ab (bei Serien: diesen Termin), daher
+                // wie *Erledigt* erst nach dem Entsperren.
+                if (Links.isOpenable(r.link)) {
+                    addAction(
+                        NotificationCompat.Action.Builder(0, "Link öffnen", openLinkIntent(ctx, r))
+                            .setAuthenticationRequired(true)
+                            .build(),
+                    )
+                }
+            }
             .build()
         // Erst entfernen, dann neu posten: So zählt jede Wiederholung als neue Meldung
         // (Ton, Vibration, Weiterleitung an die Uhr) statt als stilles Update.

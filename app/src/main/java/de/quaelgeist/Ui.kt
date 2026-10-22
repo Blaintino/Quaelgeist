@@ -539,6 +539,9 @@ private fun EditDialog(
 ) {
     val ctx = LocalContext.current
     var title by remember { mutableStateOf(initial?.title ?: prefillTitle) }
+    var link by remember { mutableStateOf(initial?.link ?: "") }
+    val linkValid = Links.normalize(link) != null
+    val canSave = title.isNotBlank() && linkValid
     // Liegt der aktuelle Termin am Wochenende mit eigener Uhrzeit, zeigt der Editor trotzdem die
     // normale Uhrzeit (aus anchorAt) – sie ist die Hauptuhrzeit der Serie.
     var at by remember { mutableStateOf(initial?.let(::editorStart) ?: defaultAt()) }
@@ -563,6 +566,9 @@ private fun EditDialog(
     val number = KeyboardOptions(keyboardType = KeyboardType.Number)
 
     fun save() {
+        if (!canSave) return
+        // Link im Titel wandert ins leere Linkfeld (siehe [Links.split]).
+        val (cleanTitle, rawLink) = Links.split(title, link)
         // Termin unverändert und gleiche Regel: ursprünglichen Serienstart behalten,
         // damit z. B. „am 31." nach einem 30er-Monat nicht auf den 30. rutscht.
         val keepAnchor = initial != null && at == initial.baseAt &&
@@ -570,7 +576,7 @@ private fun EditDialog(
         onSave(
             Reminder(
                 id = initial?.id ?: ReminderStore.newId(),
-                title = title.trim(),
+                title = cleanTitle,
                 baseAt = at,
                 fireAt = at,
                 anchorAt = initial?.takeIf { keepAnchor }?.anchorAt ?: at,
@@ -585,6 +591,7 @@ private fun EditDialog(
                     else -> weekendMode
                 },
                 weekendTimeMin = weekendMin,
+                link = Links.normalize(rawLink) ?: "",
             ).let(Recurrence::alignStart),
         )
     }
@@ -607,7 +614,7 @@ private fun EditDialog(
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f),
                     )
-                    TextButton(enabled = title.isNotBlank(), onClick = { save() }) {
+                    TextButton(enabled = canSave, onClick = { save() }) {
                         Text("Speichern")
                     }
                 }
@@ -624,9 +631,25 @@ private fun EditDialog(
                         singleLine = true,
                         // Eingabetaste = Speichern mit den übrigen Werten wie eingestellt.
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                        keyboardActions = KeyboardActions(
-                            onDone = { if (title.isNotBlank()) save() },
+                        keyboardActions = KeyboardActions(onDone = { save() }),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    // Ausgefüllt: Die Meldung bekommt „Link öffnen" (öffnet und hakt ab).
+                    OutlinedTextField(
+                        value = link,
+                        onValueChange = { link = it },
+                        label = { Text("Link (optional)") },
+                        placeholder = { Text("https://…") },
+                        singleLine = true,
+                        isError = !linkValid,
+                        supportingText = if (linkValid) null else {
+                            { Text("Nur http(s)-Links") }
+                        },
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Uri,
+                            imeAction = ImeAction.Done,
                         ),
+                        keyboardActions = KeyboardActions(onDone = { save() }),
                         modifier = Modifier.fillMaxWidth(),
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
