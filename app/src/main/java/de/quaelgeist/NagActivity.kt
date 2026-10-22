@@ -110,13 +110,26 @@ private fun NagScreen(id: Long, onClose: () -> Unit) {
                 style = MaterialTheme.typography.headlineLarge,
                 textAlign = TextAlign.Center,
             )
-            Text("Fällig: $due", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                if (r.isPlace) "${Notifier.placeLabel(ctx, r)} · $due" else "Fällig: $due",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
             Spacer(Modifier.height(16.dp))
 
             Button(
                 onClick = { act { Actions.markDone(ctx, r.id, r.baseAt) } },
                 modifier = Modifier.fillMaxWidth().height(64.dp),
             ) { Text("Erledigt", style = MaterialTheme.typography.titleLarge) }
+
+            if (r.isPlace) {
+                // Wieder auf den Ort warten (erst weg- bzw. wieder hinkommen, siehe GeoLogic).
+                SnoozeButton(
+                    if (r.placeTrigger == PlaceTrigger.ARRIVE) "Beim nächsten Ankommen"
+                    else "Beim nächsten Verlassen",
+                    Modifier.fillMaxWidth(),
+                ) { act { Actions.rearmPlace(ctx, r.id, r.baseAt) } }
+            }
 
             Spacer(Modifier.height(8.dp))
             Text("Verschieben um", style = MaterialTheme.typography.labelLarge)

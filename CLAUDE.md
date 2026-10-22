@@ -90,6 +90,30 @@ Cloud-Sessions haben weder Emulator noch Handy.
   Receiver ab Android 12 keine Activity starten dürfen): öffnet per `ACTION_VIEW` und hakt
   danach über `Actions.markDone` ab (bei Serien: dieser Termin), mit
   `setAuthenticationRequired(true)` wie *Erledigt*.
+- Orts-Erinnerungen (Tab „Orte“, `TAB_PLACES`; Wunsch des Nutzers: Erinnerungen an
+  Ereignisse ohne festen Zeitpunkt, z. B. beim Heimkommen). Nur einmalig (wiederkehrend
+  bewusst zurückgestellt). `Reminder.placeId != 0`, `placeTrigger` ARRIVE/LEAVE, `placeArmed` =
+  wartet (dann kein Zeit-Alarm: `Scheduler.schedule` meldet ab, `AlarmReceiver.fire` ignoriert),
+  `windowStartMin`/`windowEndMin` (-1 = immer), `checkIntervalMin` (Vorgabe 15, min. 2).
+  Auslösen: `Actions.firePlace` setzt `baseAt`/`fireAt` = jetzt, dann `AlarmReceiver.fire`
+  (normale Nag-Kette). „Beim nächsten Ankommen/Verlassen“ in `NagActivity` →
+  `Actions.rearmPlace`.
+  - Orte (`Place.kt`, `PlaceStore`): Name, Koordinaten, Radius (150 m), mehrere SSIDs. Anlegen
+    ohne Internet (kein `INTERNET`-Recht!): aktueller Standort, Koordinaten/Plus Code einfügen
+    (`PlaceInput`, `PlusCode` – eigene OLC-Umsetzung, kurze Codes über den letzten Standort),
+    Teilen über den Alias `.SharePlace` (`ACTION_SEND`, `MainActivity.sharedPlaceText`).
+    Google-Maps-Kurzlinks sind ohne Netz nicht auflösbar (bewusst, Wunsch des Nutzers).
+  - Erkennung `GeoWatch` nach Vorbild der FH-Stempelkarte (Repo `Blaintino/FH-Stempelkarte`,
+    dort zuverlässig): `addProximityAlert` je Ort, `requestLocationUpdates` (PendingIntent),
+    `registerNetworkCallback` (WLAN), Prüf-Alarm `setExactAndAllowWhileIdle`. Alles nur für
+    Orte mit wartender Erinnerung im Zeitfenster (`replan`, auch aus
+    `Scheduler.rescheduleAll`). Regeln in `GeoLogic` (Tests `GeoLogicTest`): nur echte Wechsel
+    lösen aus, nie aus UNKNOWN; Ort neu/nicht mehr überwacht oder geändert → UNKNOWN. WLAN des
+    Orts = immer „da“; „weg“ erst bei Abstand − Genauigkeit > Radius + 50 m; „da“ nur bei
+    Genauigkeit ≤ 250 m. Geofence-„verlassen“ löst nur eine neue Messung aus. Zuletzt bekannter
+    Standort: die neueste Messung, nicht die genaueste. Alles ins `GeoLog` (Orte verwalten).
+  - Prüfliste: Standort genau / „Immer erlauben“ / Standortdienst nur, wenn es offene
+    Orts-Erinnerungen gibt (`Check.permission` fragt Rechte direkt an).
 - `AlarmReceiver`: plant zuerst die nächste Wiederholung (`nagCount`, `fireAt`), zeigt dann die
   Meldung.
   Nach der letzten erlaubten Meldung rücken Serien zum nächsten Termin vor, einmalige bleiben
@@ -139,7 +163,8 @@ Cloud-Sessions haben weder Emulator noch Handy.
   Paket/App-ID `de.quaelgeist`, Release-Tags `quaelgeist-v…`, APK `Quaelgeist-….apk`.
 - Öffentliches Repo, Lizenz GPL-3.0 (`LICENSE`).
 
-- Nur lokal: keine Google-Dienste, kein Netzwerk, keine Tracker, keine Konten.
+- Nur lokal: keine Google-Dienste, kein Netzwerk, keine Tracker, keine Konten. Standort und
+  WLAN-Name werden nur lokal ausgewertet (Orts-Erinnerungen), es gibt kein `INTERNET`-Recht.
 - Keine zusätzlichen Abhängigkeiten ohne guten Grund. Aktuell nur Compose, Core-KTX,
   Activity-Compose und Coroutines.
 - Oberfläche und Texte sind deutsch.
