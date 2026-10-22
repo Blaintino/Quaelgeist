@@ -69,6 +69,18 @@ object GeoWatch {
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
     )
 
+    /**
+     * Gibt es die PendingIntents der Anmeldung noch? Nach Neustart oder „Stopp erzwingen“
+     * verwirft Android sie samt Geofences, Standort-Updates und Alarmen.
+     */
+    private fun stillRegistered(ctx: Context, action: String, path: String, mutable: Boolean) =
+        PendingIntent.getBroadcast(
+            ctx, 0, intent(ctx, action, path),
+            PendingIntent.FLAG_NO_CREATE or
+                (if (mutable && Build.VERSION.SDK_INT >= 31) PendingIntent.FLAG_MUTABLE
+                else if (!mutable) PendingIntent.FLAG_IMMUTABLE else 0),
+        ) != null
+
     fun hasFineLocation(ctx: Context) =
         ctx.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) ==
             PackageManager.PERMISSION_GRANTED
@@ -94,6 +106,11 @@ object GeoWatch {
      * nächsten Prüf-Alarm (Prüfintervall oder nächste Fenstergrenze). Orte, die neu oder nicht
      * mehr überwacht werden, gelten wieder als UNKNOWN – ein Wechsel außerhalb der Überwachung
      * soll nicht nachträglich auslösen.
+     *
+     * Neu angemeldet wird nur, wenn sich die Anmeldung ändert (Orte, Radius, WLANs, Intervall,
+     * Anbieter, Recht) oder Android sie verworfen hat: Jede Anmeldung liefert sofort einen
+     * Standort und den WLAN-Stand, das füllte bei jedem App-Start das Protokoll. Ebenso bleibt
+     * ein schon geplanter Prüf-Alarm stehen, statt bei jedem Aufruf nach hinten zu rutschen.
      */
     @SuppressLint("MissingPermission")
     fun replan(ctx: Context) {
@@ -115,32 +132,22 @@ object GeoWatch {
         placeStore.watched = active
 
         val fine = hasFineLocation(ctx)
-        runCatching { lm.removeUpdates(locationPi(ctx)) }
-        runCatching { cm.unregisterNetworkCallback(wifiPi(ctx)) }
-        var provider: String? = null
         val interval = watching.minOfOrNull { GeoLogic.intervalMin(it) }
-        if (active.isNotEmpty() && fine && interval != null) {
-            active.forEach { id ->
+        val provider = if (active.isNotEmpty() && fine) bestProvider(lm) else null
+        val signature = if (active.isEmpty() || !fine || interval == null) "" else {
+            active.sorted().joinToString(";") { id ->
                 val p = places.getValue(id)
-                runCatching {
-                    lm.removeProximityAlert(proximityPi(ctx, id))
-                    lm.addProximityAlert(p.lat, p.lon, p.radiusM.toFloat(), -1, proximityPi(ctx, id))
-                }.onFailure { GeoLog.add(ctx, "Geofence ${p.name}: FEHLER ${it.javaClass.simpleName}") }
+                "$id:${p.lat},${p.lon},${p.radiusM},${p.ssids.sorted()}"
+            } + "|$interval|$provider"
+        }
+        val lost = signature.isNotEmpty() &&
+            !stillRegistered(ctx, ACTION_LOCATION, "location", mutable = true)
+        if (signature != placeStore.registration || lost) {
+            if (lost && signature == placeStore.registration) {
+                GeoLog.add(ctx, "Anmeldung verloren (Neustart/Stopp erzwingen), melde neu an")
             }
-            provider = bestProvider(lm)
-            provider?.let { prov ->
-                runCatching {
-                    lm.requestLocationUpdates(prov, interval * 60_000L, 0f, locationPi(ctx))
-                }.onFailure { GeoLog.add(ctx, "Standort-Updates: FEHLER ${it.javaClass.simpleName}") }
-            }
-            if (active.any { places.getValue(it).ssids.isNotEmpty() }) {
-                runCatching {
-                    cm.registerNetworkCallback(
-                        NetworkRequest.Builder().addTransportType(NetworkCapabilities.TRANSPORT_WIFI).build(),
-                        wifiPi(ctx),
-                    )
-                }.onFailure { GeoLog.add(ctx, "WLAN-Meldung: FEHLER ${it.javaClass.simpleName}") }
-            }
+            register(ctx, lm, cm, active, places, interval, provider)
+            placeStore.registration = signature
         }
 
         if (active != before) {
@@ -158,18 +165,65 @@ object GeoWatch {
         }
 
         // Nächster Prüf-Alarm: im Prüfintervall, solange überwacht wird, sonst zur nächsten
-        // Fenstergrenze einer wartenden Erinnerung.
+        // Fenstergrenze einer wartenden Erinnerung. Ein früher geplanter bleibt stehen.
         val next = listOfNotNull(
             interval?.let { now + it * 60_000L },
             armed.mapNotNull { GeoLogic.nextBoundary(it, now, zone) }.minOrNull(),
         ).minOrNull()
         val am = ctx.getSystemService(AlarmManager::class.java)
+        val planned = placeStore.tickAt
+        val tickAlive = stillRegistered(ctx, ACTION_TICK, "tick", mutable = false)
         if (next == null) {
             am.cancel(tickPi(ctx))
-        } else if (Scheduler.canScheduleExact(ctx)) {
-            am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, next, tickPi(ctx))
-        } else {
-            am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, next, tickPi(ctx))
+            tickPi(ctx).cancel()
+            placeStore.tickAt = 0
+        } else if (!tickAlive || planned <= now || next < planned) {
+            if (Scheduler.canScheduleExact(ctx)) {
+                am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, next, tickPi(ctx))
+            } else {
+                am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, next, tickPi(ctx))
+            }
+            placeStore.tickAt = next
+        }
+    }
+
+    /** Geofences, Standort-Updates und WLAN-Meldung ab- und für [active] neu anmelden. */
+    @SuppressLint("MissingPermission")
+    private fun register(
+        ctx: Context,
+        lm: LocationManager,
+        cm: ConnectivityManager,
+        active: Set<Long>,
+        places: Map<Long, Place>,
+        interval: Int?,
+        provider: String?,
+    ) {
+        runCatching { lm.removeUpdates(locationPi(ctx)) }
+        runCatching { cm.unregisterNetworkCallback(wifiPi(ctx)) }
+        if (active.isEmpty() || interval == null || !hasFineLocation(ctx)) {
+            // Ohne Anmeldung auch den PendingIntent verwerfen (Prüfung „verloren?“ oben).
+            locationPi(ctx).cancel()
+            return
+        }
+        active.forEach { id ->
+            val p = places.getValue(id)
+            runCatching {
+                lm.removeProximityAlert(proximityPi(ctx, id))
+                lm.addProximityAlert(p.lat, p.lon, p.radiusM.toFloat(), -1, proximityPi(ctx, id))
+            }.onFailure { GeoLog.add(ctx, "Geofence ${p.name}: FEHLER ${it.javaClass.simpleName}") }
+        }
+        provider?.let { prov ->
+            runCatching {
+                lm.requestLocationUpdates(prov, interval * 60_000L, 0f, locationPi(ctx))
+            }.onFailure { GeoLog.add(ctx, "Standort-Updates: FEHLER ${it.javaClass.simpleName}") }
+        }
+        if (active.any { places.getValue(it).ssids.isNotEmpty() }) {
+            runCatching {
+                cm.registerNetworkCallback(
+                    NetworkRequest.Builder().addTransportType(NetworkCapabilities.TRANSPORT_WIFI).build(),
+                    wifiPi(ctx),
+                )
+            }.onFailure { GeoLog.add(ctx, "WLAN-Meldung: FEHLER ${it.javaClass.simpleName}") }
         }
     }
 

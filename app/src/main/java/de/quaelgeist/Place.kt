@@ -70,6 +70,22 @@ class PlaceStore(context: Context) {
             prefs.edit().putStringSet(KEY_WATCHED, v.map { it.toString() }.toSet()).commit()
         }
 
+    /** Kennung der aktuellen Anmeldung bei Android ([GeoWatch.replan]); leer = nichts angemeldet. */
+    var registration: String
+        get() = prefs.getString(KEY_REGISTRATION, "")!!
+        @SuppressLint("ApplySharedPref")
+        set(v) {
+            prefs.edit().putString(KEY_REGISTRATION, v).commit()
+        }
+
+    /** Zeitpunkt des geplanten Prüf-Alarms (0 = keiner). */
+    var tickAt: Long
+        get() = prefs.getLong(KEY_TICK_AT, 0)
+        @SuppressLint("ApplySharedPref")
+        set(v) {
+            prefs.edit().putLong(KEY_TICK_AT, v).commit()
+        }
+
     @SuppressLint("ApplySharedPref")
     private fun save(list: List<Place>) {
         val arr = JSONArray()
@@ -81,6 +97,8 @@ class PlaceStore(context: Context) {
     companion object {
         private const val KEY = "list"
         private const val KEY_WATCHED = "watched"
+        private const val KEY_REGISTRATION = "registration"
+        private const val KEY_TICK_AT = "tickAt"
 
         /** Zähler wie [ReminderStore.version] – die Oberfläche lädt dann neu. */
         val version = MutableStateFlow(0)

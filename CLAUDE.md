@@ -112,6 +112,12 @@ Cloud-Sessions haben weder Emulator noch Handy.
     Orts = immer „da“; „weg“ erst bei Abstand − Genauigkeit > Radius + 50 m; „da“ nur bei
     Genauigkeit ≤ 250 m. Geofence-„verlassen“ löst nur eine neue Messung aus. Zuletzt bekannter
     Standort: die neueste Messung, nicht die genaueste. Alles ins `GeoLog` (Orte verwalten).
+    `replan` meldet nur neu an, wenn sich die Anmeldung ändert (`PlaceStore.registration`:
+    Orte/Radius/WLANs/Intervall/Anbieter) oder Android sie verworfen hat (PendingIntent per
+    `FLAG_NO_CREATE` weg, z. B. nach Neustart/„Stopp erzwingen“) – jede Anmeldung liefert sofort
+    Standort und WLAN-Stand und füllte sonst bei jedem App-Start das Protokoll (vom Nutzer
+    bemerkt). Ein geplanter Prüf-Alarm (`PlaceStore.tickAt`) bleibt stehen statt bei jedem
+    Aufruf nach hinten zu rutschen.
   - Prüfliste: Standort genau / „Immer erlauben“ / Standortdienst nur, wenn es offene
     Orts-Erinnerungen gibt (`Check.permission` fragt Rechte direkt an).
 - `AlarmReceiver`: plant zuerst die nächste Wiederholung (`nagCount`, `fireAt`), zeigt dann die
