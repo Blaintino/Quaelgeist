@@ -89,7 +89,11 @@ private fun QuickAddDialog(onClose: () -> Unit) {
 
     fun saveAt(at: ZonedDateTime) {
         val ms = at.toInstant().toEpochMilli()
-        val r = Reminder(id = ReminderStore.newId(), title = title.trim(), baseAt = ms, fireAt = ms)
+        // Link im Titel wandert ins Linkfeld, wie im Editor.
+        val (cleanTitle, link) = Links.split(title, "")
+        val r = Reminder(
+            id = ReminderStore.newId(), title = cleanTitle, baseAt = ms, fireAt = ms, link = link,
+        )
         ReminderStore(ctx).upsert(r)
         Scheduler.schedule(ctx, r)
         val label = at.format(DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT))

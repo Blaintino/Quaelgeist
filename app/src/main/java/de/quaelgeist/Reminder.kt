@@ -28,6 +28,7 @@ data class Reminder(
     val doneAt: Long = 0, // Zeitpunkt des Abhakens (nur erledigte einmalige; 0 = unbekannt)
     val weekendMode: WeekendMode = WeekendMode.NORMAL,
     val weekendTimeMin: Int = DEFAULT_WEEKEND_TIME_MIN, // Minuten ab Mitternacht (OTHER_TIME)
+    val link: String = "", // http(s)-Link oder leer; „Link öffnen" in der Meldung (siehe [Links])
 ) {
     /** Darf nach der aktuellen Meldung noch eine weitere Wiederholung folgen? */
     val canNag: Boolean get() = nagIntervalMin > 0 && (maxNags == 0 || nagCount < maxNags)

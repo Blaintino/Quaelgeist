@@ -4,11 +4,12 @@ on:
   push:
     branches:
       - main
+      - next
       - "claude/**"
   workflow_dispatch:
 
 permissions:
-  contents: write # für das GitHub Release auf main
+  contents: write # für das GitHub Release auf main bzw. next
 
 jobs:
   build:
@@ -18,6 +19,9 @@ jobs:
       # Steigt mit jedem Lauf – Android installiert Updates nur bei höherem versionCode.
       VERSION_CODE: ${{ github.run_number }}
       HAS_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+      # Branch `next`: Beta-Variante (App-ID de.quaelgeist.beta, läuft neben Quälgeist).
+      QUAELGEIST_BETA: ${{ github.ref == 'refs/heads/next' }}
+      APK_NAME: ${{ github.ref == 'refs/heads/next' && 'Quaelgeist-Beta' || 'Quaelgeist' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -45,7 +49,7 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           ./gradlew --no-daemon assembleRelease
-          cp app/build/outputs/apk/release/app-release.apk "Quaelgeist-${VERSION_CODE}.apk"
+          cp app/build/outputs/apk/release/app-release.apk "${APK_NAME}-${VERSION_CODE}.apk"
 
       # Ohne Secrets: Debug-APK, damit der Build trotzdem grün ist. Debug-APKs
       # aus dem CI sind bei jedem Lauf anders signiert – Updates darüber
@@ -55,7 +59,7 @@ jobs:
         run: |
           echo "::warning::Keine Signatur-Secrets hinterlegt – es wird nur eine Debug-APK gebaut (siehe README.md)."
           ./gradlew --no-daemon assembleDebug
-          cp app/build/outputs/apk/debug/app-debug.apk "Quaelgeist-${VERSION_CODE}-debug.apk"
+          cp app/build/outputs/apk/debug/app-debug.apk "${APK_NAME}-${VERSION_CODE}-debug.apk"
 
       - name: APK als Artefakt hochladen
         uses: actions/upload-artifact@v4
@@ -68,6 +72,17 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "quaelgeist-v${VERSION_CODE}" "Quaelgeist-${VERSION_CODE}.apk" \
+          gh release create "quaelgeist-v${VERSION_CODE}" "${APK_NAME}-${VERSION_CODE}.apk" \
             --title "quaelgeist-v${VERSION_CODE}" \
             --notes "Automatischer Build von ${GITHUB_SHA::7}."
+
+      # Eigener Tag-Präfix: Obtainium filtert die stabile App auf ^quaelgeist-v, die Beta auf
+      # ^quaelgeist-beta-v. Bewusst keine Vorabversion – die ignoriert Obtainium standardmäßig.
+      - name: GitHub Release anlegen (nur next, nur signiert)
+        if: github.ref == 'refs/heads/next' && env.HAS_KEYSTORE == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "quaelgeist-beta-v${VERSION_CODE}" "${APK_NAME}-${VERSION_CODE}.apk" \
+            --title "quaelgeist-beta-v${VERSION_CODE}" \
+            --notes "Beta-Build von ${GITHUB_SHA::7} (Branch next)."

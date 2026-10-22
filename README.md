@@ -29,6 +29,12 @@ lokal auf dem Gerät, es gibt keine Google-Dienste, kein Netzwerk und keine Kont
   die Eingabetaste im Titelfeld speichert ebenfalls. Schnellwahl *9:30* und *17:00* unter der
   Uhrzeit. Liegt eine gewählte Uhrzeit an dem Tag schon zurück, rückt der Termin auf den
   nächsten Tag zu dieser Uhrzeit (gilt auch für *Anderer Tag…* beim Verschieben).
+- **Links**: Im Editor gibt es ein optionales Feld *Link* (nur `http(s)`, ohne Schema wird
+  `https://` ergänzt). Steht beim Speichern ein Link im Titel und ist das Feld leer, wandert
+  der Link ins Feld (auch in der Schnelleingabe); besteht der Titel nur aus dem Link, bleibt er
+  Titel. Mit Link bekommt die Meldung einen dritten Knopf *Link öffnen*: öffnet den Link
+  (Android wählt Browser bzw. passende App) und hakt die Erinnerung ab – bei Serien nur den
+  aktuellen Termin. Auf dem Sperrbildschirm wie *Erledigt* erst nach dem Entsperren.
 - **Mehrere Erinnerungen gleichzeitig**: Jede bekommt ihre eigene Meldung und lässt sich
   einzeln abhaken oder verschieben. Klingeln und vibrieren tut aber nur die erste; die übrigen
   kommen still dazu.
@@ -58,6 +64,19 @@ Voraussetzung: Android 8.0 oder neuer.
 - **Mit automatischen Updates über [Obtainium](https://obtainium.imranr.dev/):** App
   hinzufügen mit der URL `https://github.com/Blaintino/Quaelgeist`, unter „Filter release
   titles by regular expression“ `^quaelgeist-v` eintragen. Ein GitHub-Token ist nicht nötig.
+
+### Beta (Branch `next`)
+
+Neue Funktionen entstehen erst auf dem Branch `next`. Das CI baut dort die Variante
+**„Quälgeist Beta“** (App-ID `de.quaelgeist.beta`, orangefarbenes Symbol, Releases
+`quaelgeist-beta-v…` mit `Quaelgeist-Beta-….apk`). Sie läuft *neben* dem stabilen Quälgeist,
+mit eigenen (anfangs leeren) Daten. In Obtainium als zweite App mit derselben URL und dem
+Filter `^quaelgeist-beta-v` hinzufügen.
+
+Hat sich die Beta bewährt, wird `next` in `main` gemergt: Daraus entsteht ein normales
+Quälgeist-Release (`de.quaelgeist`, gleicher Schlüssel), das sich als Update über die
+stabile App installiert und deren Daten übernimmt – neue Felder sind deshalb immer optional.
+Die Beta danach deinstallieren. Lokal entsteht die Beta mit `QUAELGEIST_BETA=true`.
 
 ## Lokal bauen
 
@@ -113,6 +132,7 @@ Quälgeist für das Band einschalten.
 | `NagActivity.kt` | Erledigt-/Verschieben-Bildschirm (nur nach Entsperren) |
 | `Reliability.kt` | Prüfliste „Zuverlässigkeit“ und Test-Erinnerung |
 | `Actions.kt` | Erledigt / Verschieben / Löschen |
+| `Links.kt`, `OpenLinkActivity.kt` | Link aus dem Titel übernehmen, „Link öffnen“ (Tests: `LinksTest.kt`) |
 | `Receivers.kt` | Alarm, Schaltflächen, Neustart |
 | `Ui.kt`, `MainActivity.kt` | Oberfläche (Jetpack Compose): Tabs *Offen* / *Archiv*, Editor |
 | `QuickAdd.kt` | Homescreen-Widget und Schnelleingabe-Fenster |
