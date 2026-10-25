@@ -29,6 +29,14 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleIntent(intent: Intent?) {
+        // Ort aus Google Maps, OsmAnd usw. geteilt (Alias „Als Ort in Quälgeist“).
+        if (intent?.action == Intent.ACTION_SEND) {
+            val text = listOfNotNull(
+                intent.getStringExtra(Intent.EXTRA_SUBJECT),
+                intent.getStringExtra(Intent.EXTRA_TEXT),
+            ).joinToString("\n")
+            if (text.isNotBlank()) sharedPlaceText.value = text
+        }
         intent?.getStringExtra(EXTRA_NEW_TITLE)?.let { newTitleRequest.value = it }
         intent?.getLongExtra(EXTRA_EDIT_ID, -1)?.takeIf { it >= 0 }?.let { editRequest.value = it }
     }
@@ -49,5 +57,6 @@ class MainActivity : ComponentActivity() {
         val resumeTick = MutableStateFlow(0)
         val newTitleRequest = MutableStateFlow<String?>(null)
         val editRequest = MutableStateFlow<Long?>(null)
+        val sharedPlaceText = MutableStateFlow<String?>(null)
     }
 }

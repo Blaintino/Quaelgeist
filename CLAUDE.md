@@ -23,6 +23,15 @@ Cloud-Sessions haben weder Emulator noch Handy.
   Keystore einchecken oder in einer Cloud-Session erzeugen.
 - `versionCode` kommt aus `VERSION_CODE` (= `github.run_number` im CI).
 - Debug-Build: App-ID `de.quaelgeist.debug`, Name über den Manifest-Platzhalter `appLabel`.
+- Beta (Wunsch des Nutzers: neue Funktionen erst neben der funktionierenden App testen,
+  später als Update über Quälgeist): Entwicklung auf dem Branch `next`, `main` bleibt stabil
+  und Rückweg. `QUAELGEIST_BETA=true` (im CI nur auf `next`) → App-ID `de.quaelgeist.beta`,
+  Name „Quälgeist Beta“, Symbol `ic_launcher_beta` (Platzhalter `appIcon`), Release
+  `quaelgeist-beta-v<run_number>` (Obtainium `^quaelgeist-beta-v`), gleicher Keystore.
+  Feature-PRs zielen auf `next`. Weil `next` später als Update über `de.quaelgeist` mit
+  dessen echten Daten läuft, neue `Reminder`-Felder immer mit Vorgabe und `opt…` im
+  `ReminderStore` lesen. `taskAffinity` im Manifest über `${applicationId}`, sonst teilen sich
+  Beta und stabile App Aufgaben.
 
 ## Verhalten, das erhalten bleiben muss
 
@@ -51,7 +60,7 @@ Cloud-Sessions haben weder Emulator noch Handy.
     sie bei jedem Öffnen.
   - `Reliability.kt`: Prüfliste mit Systemeinstellungs-Links und Test-Erinnerung; neue
     Voraussetzungen dort ergänzen.
-- Benachrichtigung hat nur *Erledigt* und *Verschieben…*; Verschieben öffnet `NagActivity`
+- Benachrichtigung hat nur *Erledigt* und *Verschieben…* (mit Link zusätzlich *Link öffnen*); Verschieben öffnet `NagActivity`
   (Wunsch des Nutzers). Standard-Nag-Intervall 10 Minuten. *Erledigt* mit
   `setAuthenticationRequired(true)`: auf dem Sperrbildschirm erst nach dem Entsperren.
 - `NagActivity`: Verschieben um 10/30 Min, 1/3 Std, Morgen, Montag (`QuickTimes.nextMonday`,
@@ -74,6 +83,43 @@ Cloud-Sessions haben weder Emulator noch Handy.
   Chip) oder beim Verschieben „Anderer Tag…“ genutzt und liegt der Zeitpunkt nicht in der
   Zukunft, gilt der nächste Tag zu dieser Uhrzeit (`QuickTimes.onDayOrNext`). Unangetastete
   Termine beim Bearbeiten werden nicht verschoben.
+- Links (`Links.kt`, Tests `LinksTest`): optionales Feld `Reminder.link`, nur http(s)
+  (Wunsch des Nutzers). Beim Speichern (Editor und Schnelleingabe) wandert ein Link aus dem
+  Titel ins leere Linkfeld; besteht der Titel nur aus dem Link, bleibt er Titel. Mit Link
+  hat die Meldung einen dritten Knopf „Link öffnen“ (`OpenLinkActivity`, eine Activity, weil
+  Receiver ab Android 12 keine Activity starten dürfen): öffnet per `ACTION_VIEW` und hakt
+  danach über `Actions.markDone` ab (bei Serien: dieser Termin), mit
+  `setAuthenticationRequired(true)` wie *Erledigt*.
+- Orts-Erinnerungen (Tab „Orte“, `TAB_PLACES`; Wunsch des Nutzers: Erinnerungen an
+  Ereignisse ohne festen Zeitpunkt, z. B. beim Heimkommen). Nur einmalig (wiederkehrend
+  bewusst zurückgestellt). `Reminder.placeId != 0`, `placeTrigger` ARRIVE/LEAVE, `placeArmed` =
+  wartet (dann kein Zeit-Alarm: `Scheduler.schedule` meldet ab, `AlarmReceiver.fire` ignoriert),
+  `windowStartMin`/`windowEndMin` (-1 = immer), `checkIntervalMin` (Vorgabe 15, min. 2).
+  Auslösen: `Actions.firePlace` setzt `baseAt`/`fireAt` = jetzt, dann `AlarmReceiver.fire`
+  (normale Nag-Kette). „Beim nächsten Ankommen/Verlassen“ in `NagActivity` →
+  `Actions.rearmPlace`.
+  - Orte (`Place.kt`, `PlaceStore`): Name, Koordinaten, Radius (150 m), mehrere SSIDs. Anlegen
+    ohne Internet (kein `INTERNET`-Recht!): aktueller Standort, Koordinaten/Plus Code einfügen
+    (`PlaceInput`, `PlusCode` – eigene OLC-Umsetzung, kurze Codes über den letzten Standort),
+    Teilen über den Alias `.SharePlace` (`ACTION_SEND`, `MainActivity.sharedPlaceText`).
+    Google-Maps-Kurzlinks sind ohne Netz nicht auflösbar (bewusst, Wunsch des Nutzers).
+  - Erkennung `GeoWatch` nach Vorbild der FH-Stempelkarte (Repo `Blaintino/FH-Stempelkarte`,
+    dort zuverlässig): `addProximityAlert` je Ort, `requestLocationUpdates` (PendingIntent),
+    `registerNetworkCallback` (WLAN), Prüf-Alarm `setExactAndAllowWhileIdle`. Alles nur für
+    Orte mit wartender Erinnerung im Zeitfenster (`replan`, auch aus
+    `Scheduler.rescheduleAll`). Regeln in `GeoLogic` (Tests `GeoLogicTest`): nur echte Wechsel
+    lösen aus, nie aus UNKNOWN; Ort neu/nicht mehr überwacht oder geändert → UNKNOWN. WLAN des
+    Orts = immer „da“; „weg“ erst bei Abstand − Genauigkeit > Radius + 50 m; „da“ nur bei
+    Genauigkeit ≤ 250 m. Geofence-„verlassen“ löst nur eine neue Messung aus. Zuletzt bekannter
+    Standort: die neueste Messung, nicht die genaueste. Alles ins `GeoLog` (Orte verwalten).
+    `replan` meldet nur neu an, wenn sich die Anmeldung ändert (`PlaceStore.registration`:
+    Orte/Radius/WLANs/Intervall/Anbieter) oder Android sie verworfen hat (PendingIntent per
+    `FLAG_NO_CREATE` weg, z. B. nach Neustart/„Stopp erzwingen“) – jede Anmeldung liefert sofort
+    Standort und WLAN-Stand und füllte sonst bei jedem App-Start das Protokoll (vom Nutzer
+    bemerkt). Ein geplanter Prüf-Alarm (`PlaceStore.tickAt`) bleibt stehen statt bei jedem
+    Aufruf nach hinten zu rutschen.
+  - Prüfliste: Standort genau / „Immer erlauben“ / Standortdienst nur, wenn es offene
+    Orts-Erinnerungen gibt (`Check.permission` fragt Rechte direkt an).
 - `AlarmReceiver`: plant zuerst die nächste Wiederholung (`nagCount`, `fireAt`), zeigt dann die
   Meldung.
   Nach der letzten erlaubten Meldung rücken Serien zum nächsten Termin vor, einmalige bleiben
@@ -123,7 +169,8 @@ Cloud-Sessions haben weder Emulator noch Handy.
   Paket/App-ID `de.quaelgeist`, Release-Tags `quaelgeist-v…`, APK `Quaelgeist-….apk`.
 - Öffentliches Repo, Lizenz GPL-3.0 (`LICENSE`).
 
-- Nur lokal: keine Google-Dienste, kein Netzwerk, keine Tracker, keine Konten.
+- Nur lokal: keine Google-Dienste, kein Netzwerk, keine Tracker, keine Konten. Standort und
+  WLAN-Name werden nur lokal ausgewertet (Orts-Erinnerungen), es gibt kein `INTERNET`-Recht.
 - Keine zusätzlichen Abhängigkeiten ohne guten Grund. Aktuell nur Compose, Core-KTX,
   Activity-Compose und Coroutines.
 - Oberfläche und Texte sind deutsch.

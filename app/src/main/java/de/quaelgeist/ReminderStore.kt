@@ -79,6 +79,13 @@ private fun Reminder.toJson() = JSONObject().apply {
     put("doneAt", doneAt)
     put("weekendMode", weekendMode.name)
     put("weekendTimeMin", weekendTimeMin)
+    put("link", link)
+    put("placeId", placeId)
+    put("placeTrigger", placeTrigger.name)
+    put("placeArmed", placeArmed)
+    put("windowStartMin", windowStartMin)
+    put("windowEndMin", windowEndMin)
+    put("checkIntervalMin", checkIntervalMin)
 }
 
 private fun JSONObject.toReminder() = Reminder(
@@ -99,4 +106,12 @@ private fun JSONObject.toReminder() = Reminder(
     weekendMode = runCatching { WeekendMode.valueOf(optString("weekendMode", "NORMAL")) }
         .getOrDefault(WeekendMode.NORMAL),
     weekendTimeMin = optInt("weekendTimeMin", Reminder.DEFAULT_WEEKEND_TIME_MIN),
+    link = optString("link", ""),
+    placeId = optLong("placeId", 0),
+    placeTrigger = runCatching { PlaceTrigger.valueOf(optString("placeTrigger", "ARRIVE")) }
+        .getOrDefault(PlaceTrigger.ARRIVE),
+    placeArmed = optBoolean("placeArmed", false),
+    windowStartMin = optInt("windowStartMin", -1),
+    windowEndMin = optInt("windowEndMin", -1),
+    checkIntervalMin = optInt("checkIntervalMin", GeoLogic.DEFAULT_INTERVAL_MIN),
 )

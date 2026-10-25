@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Symbol der Beta-Variante (QUAELGEIST_BETA): das normale Symbol auf orangem Kreis,
+     damit sie sich auf dem Homescreen vom stabilen Quälgeist unterscheidet. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:ignore="UnusedResources">
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="#FFF57C00" />
+            <size android:width="48dp" android:height="48dp" />
+        </shape>
+    </item>
+    <item
+        android:bottom="8dp"
+        android:drawable="@android:drawable/ic_popup_reminder"
+        android:left="8dp"
+        android:right="8dp"
+        android:top="8dp" />
+</layer-list>

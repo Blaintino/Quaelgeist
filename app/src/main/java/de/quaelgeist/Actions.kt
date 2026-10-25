@@ -37,6 +37,27 @@ object Actions {
         }
         ReminderStore(ctx).upsert(updated)
         Scheduler.schedule(ctx, updated)
+        if (r.isPlace) GeoWatch.replan(ctx)
+    }
+
+    /** Ort erkannt: Termin = jetzt, dann wie ein fälliger Alarm (Meldung, Nag-Kette). */
+    fun firePlace(ctx: Context, r: Reminder) {
+        val now = System.currentTimeMillis()
+        ReminderStore(ctx).upsert(
+            r.copy(placeArmed = false, baseAt = now, fireAt = now, anchorAt = now, nagCount = 0),
+        )
+        AlarmReceiver.fire(ctx, r.id)
+    }
+
+    /** „Beim nächsten Ankommen/Verlassen“: wieder auf den Ort warten, ohne Zeit-Alarm. */
+    fun rearmPlace(ctx: Context, id: Long, expectedBase: Long? = null) {
+        val r = load(ctx, id, expectedBase) ?: return
+        if (!r.isPlace) return
+        Notifier.cancel(ctx, id)
+        val updated = r.copy(placeArmed = true, nagCount = 0)
+        ReminderStore(ctx).upsert(updated)
+        Scheduler.schedule(ctx, updated)
+        GeoWatch.refresh(ctx)
     }
 
     fun snooze(ctx: Context, id: Long, minutes: Int, expectedBase: Long? = null) =
@@ -80,8 +101,10 @@ object Actions {
     }
 
     fun delete(ctx: Context, id: Long) {
+        val wasPlace = ReminderStore(ctx).get(id)?.isPlace == true
         Scheduler.cancel(ctx, id)
         Notifier.cancel(ctx, id)
         ReminderStore(ctx).delete(id)
+        if (wasPlace) GeoWatch.replan(ctx)
     }
 }

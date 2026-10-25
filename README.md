@@ -3,8 +3,9 @@
 (Früher „NagMe“; Repo und Paketname schreiben sich ohne Umlaut: `Quaelgeist`, `de.quaelgeist`.)
 
 Android-App für hartnäckige Erinnerungen im Stil von Due: Eine Erinnerung meldet sich im
-einstellbaren Abstand immer wieder, bis du sie abhakst oder verschiebst. Alle Daten bleiben
-lokal auf dem Gerät, es gibt keine Google-Dienste, kein Netzwerk und keine Konten.
+einstellbaren Abstand immer wieder, bis du sie abhakst oder verschiebst – zu einer Uhrzeit oder
+beim Ankommen/Verlassen eines Orts. Alle Daten bleiben lokal auf dem Gerät, es gibt keine
+Google-Dienste, kein Netzwerk und keine Konten.
 
 ## Funktionen
 
@@ -29,10 +30,35 @@ lokal auf dem Gerät, es gibt keine Google-Dienste, kein Netzwerk und keine Kont
   die Eingabetaste im Titelfeld speichert ebenfalls. Schnellwahl *9:30* und *17:00* unter der
   Uhrzeit. Liegt eine gewählte Uhrzeit an dem Tag schon zurück, rückt der Termin auf den
   nächsten Tag zu dieser Uhrzeit (gilt auch für *Anderer Tag…* beim Verschieben).
+- **Links**: Im Editor gibt es ein optionales Feld *Link* (nur `http(s)`, ohne Schema wird
+  `https://` ergänzt). Steht beim Speichern ein Link im Titel und ist das Feld leer, wandert
+  der Link ins Feld (auch in der Schnelleingabe); besteht der Titel nur aus dem Link, bleibt er
+  Titel. Mit Link bekommt die Meldung einen dritten Knopf *Link öffnen*: öffnet den Link
+  (Android wählt Browser bzw. passende App) und hakt die Erinnerung ab – bei Serien nur den
+  aktuellen Termin. Auf dem Sperrbildschirm wie *Erledigt* erst nach dem Entsperren.
+- **Orts-Erinnerungen** (Tab *Orte*, nur einmalig): „Beim Ankommen“ oder „Beim Verlassen“
+  eines gespeicherten Orts, z. B. „Toilettenpapier kaufen“ beim Verlassen der Arbeit oder
+  „Jacke beim Schneider abholen“, wenn der Termin nicht feststeht. Danach nervt sie wie jede
+  andere; *Verschieben…* bietet zusätzlich *Beim nächsten Ankommen/Verlassen*. Pro Erinnerung
+  optional ein Zeitfenster (außerhalb wird weder geprüft noch erinnert) und das Prüfintervall
+  (Vorgabe 15 Min, mindestens 2).
+  - **Orte** (*Orte verwalten*): Name, Radius (Vorgabe 150 m) und beliebig viele WLANs. Anlegen
+    per *Aktueller Standort*, durch Einfügen von Koordinaten oder Plus Code (in Google Maps
+    lange auf den Punkt drücken, Koordinaten oder Plus Code antippen = kopiert; der Knopf
+    *Google Maps* öffnet die App) oder per Teilen aus einer Karten-App (*Als Ort in
+    Quälgeist*). Alles ohne Internet; kurze Plus Codes („3V4M+2X Erfurt“) werden über den
+    letzten eigenen Standort ergänzt (bis grob 50 km). Ein reiner `maps.app.goo.gl`-Link
+    enthält keine Koordinaten – die App sagt dann, was zu tun ist.
+  - **Erkennung** wie in der FH-Stempelkarte: Geofence des Systems, Standort-Updates,
+    WLAN-Meldungen und ein Prüf-Alarm im Prüfintervall – der erste Hinweis zählt. Nur echte
+    Wechsel lösen aus: Wer „beim Heimkommen“ zu Hause anlegt, wird erst nach Weggehen und
+    Wiederkommen erinnert. Verbunden mit einem WLAN des Orts gilt immer als „da“ (ein Wechsel
+    zwischen den WLANs löst nichts aus); „weg“ erst mit 50 m Abstand über den Radius hinaus.
+  - **Protokoll** unten in *Orte verwalten*: jede Messung, jeder Wechsel und jede Auslösung.
 - **Mehrere Erinnerungen gleichzeitig**: Jede bekommt ihre eigene Meldung und lässt sich
   einzeln abhaken oder verschieben. Klingeln und vibrieren tut aber nur die erste; die übrigen
   kommen still dazu.
-- **Drei Tabs**: *Wiederkehrend* (z. B. Medikamente), *Einmalig* (Aufgaben) und *Archiv*.
+- **Vier Tabs**: *Wiederkehrend* (z. B. Medikamente), *Einmalig* (Aufgaben), *Orte* und *Archiv*.
   Ein neues + im Tab *Wiederkehrend* startet gleich mit täglicher Wiederholung; nach dem
   Speichern springt die App in den Tab, in dem die Erinnerung steht.
 - **Archiv**: Erledigte einmalige Erinnerungen wandern in den Tab *Archiv* (mit
@@ -58,6 +84,19 @@ Voraussetzung: Android 8.0 oder neuer.
 - **Mit automatischen Updates über [Obtainium](https://obtainium.imranr.dev/):** App
   hinzufügen mit der URL `https://github.com/Blaintino/Quaelgeist`, unter „Filter release
   titles by regular expression“ `^quaelgeist-v` eintragen. Ein GitHub-Token ist nicht nötig.
+
+### Beta (Branch `next`)
+
+Neue Funktionen entstehen erst auf dem Branch `next`. Das CI baut dort die Variante
+**„Quälgeist Beta“** (App-ID `de.quaelgeist.beta`, orangefarbenes Symbol, Releases
+`quaelgeist-beta-v…` mit `Quaelgeist-Beta-….apk`). Sie läuft *neben* dem stabilen Quälgeist,
+mit eigenen (anfangs leeren) Daten. In Obtainium als zweite App mit derselben URL und dem
+Filter `^quaelgeist-beta-v` hinzufügen.
+
+Hat sich die Beta bewährt, wird `next` in `main` gemergt: Daraus entsteht ein normales
+Quälgeist-Release (`de.quaelgeist`, gleicher Schlüssel), das sich als Update über die
+stabile App installiert und deren Daten übernimmt – neue Felder sind deshalb immer optional.
+Die Beta danach deinstallieren. Lokal entsteht die Beta mit `QUAELGEIST_BETA=true`.
 
 ## Lokal bauen
 
@@ -96,6 +135,9 @@ Was die App von sich aus tut:
 - Bei jedem App-Start, nach Neustart, Update und Zeitänderung werden alle Alarme neu
   angemeldet.
 
+Für Orts-Erinnerungen zusätzlich (erscheint in der Prüfliste, sobald es eine gibt): Standort
+„Genau“ und „Immer erlauben“, Standortdienst eingeschaltet.
+
 Was du einmalig einstellen musst (die Prüfliste führt hin): Benachrichtigungen erlauben,
 Akku „Nicht eingeschränkt“, „App bei Nichtnutzung pausieren“ aus,
 bei Samsung Quälgeist zu den „Nie schlafenden Apps“, und in Huawei Health die Meldungen von
@@ -113,6 +155,12 @@ Quälgeist für das Band einschalten.
 | `NagActivity.kt` | Erledigt-/Verschieben-Bildschirm (nur nach Entsperren) |
 | `Reliability.kt` | Prüfliste „Zuverlässigkeit“ und Test-Erinnerung |
 | `Actions.kt` | Erledigt / Verschieben / Löschen |
+| `Links.kt`, `OpenLinkActivity.kt` | Link aus dem Titel übernehmen, „Link öffnen“ (Tests: `LinksTest.kt`) |
+| `Place.kt` | Orte, Zustand je Ort, Protokoll der Ortserkennung |
+| `GeoWatch.kt` | Ortserkennung: Geofence, Standort, WLAN, Prüf-Alarm |
+| `GeoLogic.kt` | Regeln „da/weg“, Zeitfenster, WLAN-Vergleich (Tests: `GeoLogicTest.kt`) |
+| `PlusCode.kt`, `PlaceInput.kt` | Plus Codes und Koordinaten offline lesen (Tests: `PlusCodeTest.kt`, `PlaceInputTest.kt`) |
+| `PlacesUi.kt` | Tab *Orte*, Editor für Orts-Erinnerungen, Orte verwalten |
 | `Receivers.kt` | Alarm, Schaltflächen, Neustart |
 | `Ui.kt`, `MainActivity.kt` | Oberfläche (Jetpack Compose): Tabs *Offen* / *Archiv*, Editor |
 | `QuickAdd.kt` | Homescreen-Widget und Schnelleingabe-Fenster |
@@ -126,6 +174,11 @@ Quälgeist für das Band einschalten.
 - Monatliche Wiederholung am 29.–31. fällt in kürzeren Monaten auf den letzten Tag des
   Monats, im Folgemonat aber wieder auf das ursprüngliche Datum.
 - Das Archiv räumt sich nicht selbst auf; *Archiv leeren* löscht alles darin.
+- Orts-Erinnerungen: Kommt nach dem Anlegen (bzw. nach Fensterbeginn) keine einzige Messung
+  zustande, bevor du ankommst, ist der Ausgangszustand unbekannt und das Ankommen löst nicht
+  aus. Beim Speichern wird deshalb sofort einmal gemessen. Android liefert Standort im
+  Hintergrund nur wenige Male pro Stunde; ein WLAN des Orts macht vor allem das Ankommen
+  schneller und das Verlassen zuverlässiger. Wiederkehrende Orts-Erinnerungen gibt es noch nicht.
 
 ## Lizenz
 

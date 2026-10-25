@@ -45,7 +45,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.PrimaryTabRow
+import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
@@ -107,7 +107,7 @@ fun NagTheme(content: @Composable () -> Unit) {
 
 private val zone: ZoneId get() = ZoneId.systemDefault()
 
-private fun fmt(ms: Long): String =
+internal fun fmt(ms: Long): String =
     Instant.ofEpochMilli(ms).atZone(zone).format(
         DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT)
             .withLocale(Locale.getDefault()),
@@ -178,7 +178,7 @@ private fun ruleLabel(r: Reminder): String {
     }
 }
 
-private fun nagLabel(r: Reminder): String = when {
+internal fun nagLabel(r: Reminder): String = when {
     r.nagIntervalMin <= 0 -> "keine Wiederholung"
     r.maxNags == 0 -> "erinnert alle ${r.nagIntervalMin} Min, bis erledigt"
     else -> "erinnert alle ${r.nagIntervalMin} Min (max. ${r.maxNags}×)"
@@ -194,7 +194,8 @@ fun App() {
     val all = remember(version) { store.all() }
     val open = remember(all) { all.filter { !it.done }.sortedBy { it.fireAt } }
     val recurring = remember(open) { open.filter { it.repeatType != RepeatType.NONE } }
-    val once = remember(open) { open.filter { it.repeatType == RepeatType.NONE } }
+    val once = remember(open) { open.filter { it.repeatType == RepeatType.NONE && !it.isPlace } }
+    val placeReminders = remember(open) { open.filter { it.isPlace } }
     // Neueste zuerst; alte Einträge ohne Erledigt-Zeitpunkt nach Termin.
     val archive = remember(all) {
         all.filter { it.done }.sortedWith(
@@ -208,6 +209,9 @@ fun App() {
     var creatingTitle by remember { mutableStateOf<String?>(null) } // null = kein Dialog
     var confirmClear by remember { mutableStateOf(false) }
     var showReliability by remember { mutableStateOf(false) }
+    var creatingPlaceReminder by remember { mutableStateOf(false) }
+    var showPlaces by remember { mutableStateOf(false) }
+    var sharedPlace by remember { mutableStateOf<String?>(null) }
     val tick by MainActivity.resumeTick.collectAsState()
     val reliable = remember(tick, showReliability) { Reliability.allOk(ctx) }
 
@@ -222,13 +226,25 @@ fun App() {
         }
     }
 
+    // Aus einer Karten-App geteilter Ort: Orte-Bildschirm mit vorbefülltem Ort öffnen.
+    val shareRequest by MainActivity.sharedPlaceText.collectAsState()
+    LaunchedEffect(shareRequest) {
+        shareRequest?.let {
+            showReliability = false
+            showPlaces = true
+            sharedPlace = it
+            MainActivity.sharedPlaceText.value = null
+        }
+    }
+
     // „In der App bearbeiten" aus dem Verschieben-Bildschirm: Editor für diese Erinnerung.
     val editRequest by MainActivity.editRequest.collectAsState()
     LaunchedEffect(editRequest, all) {
         editRequest?.let { id ->
             all.firstOrNull { it.id == id && !it.done }?.let {
                 showReliability = false
-                tab = if (it.repeatType == RepeatType.NONE) TAB_ONCE else TAB_RECURRING
+                showPlaces = false
+                tab = tabOf(it)
                 editing = it
             }
             MainActivity.editRequest.value = null
@@ -255,8 +271,23 @@ fun App() {
         Notifier.cancel(ctx, r.id)
         store.upsert(r)
         Scheduler.schedule(ctx, r)
+        // Orts-Erinnerung: Überwachung anpassen und gleich einmal prüfen.
+        if (r.isPlace) GeoWatch.refresh(ctx)
         // Zum Tab wechseln, in dem die gespeicherte Erinnerung jetzt steht.
-        tab = if (r.repeatType == RepeatType.NONE) TAB_ONCE else TAB_RECURRING
+        tab = tabOf(r)
+    }
+
+    if (showPlaces) {
+        BackHandler { showPlaces = false }
+        Scaffold { padding ->
+            PlacesScreen(
+                sharedText = sharedPlace,
+                onSharedHandled = { sharedPlace = null },
+                onBack = { showPlaces = false },
+                contentPadding = padding,
+            )
+        }
+        return
     }
 
     if (showReliability) {
@@ -270,7 +301,9 @@ fun App() {
     Scaffold(
         floatingActionButton = {
             if (tab != TAB_ARCHIVE) {
-                FloatingActionButton(onClick = { creatingTitle = "" }) {
+                FloatingActionButton(onClick = {
+                    if (tab == TAB_PLACES) creatingPlaceReminder = true else creatingTitle = ""
+                }) {
                     Icon(Icons.Default.Add, contentDescription = "Neue Erinnerung")
                 }
             }
@@ -309,14 +342,26 @@ fun App() {
                     }
                 }
             }
-            PrimaryTabRow(selectedTabIndex = tab, modifier = Modifier.padding(top = 8.dp)) {
+            // Scrollbar: Vier Tabs mit „Wiederkehrend“ passen nicht gleich breit nebeneinander.
+            PrimaryScrollableTabRow(
+                selectedTabIndex = tab,
+                edgePadding = 8.dp,
+                modifier = Modifier.padding(top = 8.dp),
+            ) {
                 TabLabel("Wiederkehrend", recurring.size, tab == TAB_RECURRING) {
                     tab = TAB_RECURRING
                 }
                 TabLabel("Einmalig", once.size, tab == TAB_ONCE) { tab = TAB_ONCE }
+                TabLabel("Orte", placeReminders.size, tab == TAB_PLACES) { tab = TAB_PLACES }
                 TabLabel("Archiv", archive.size, tab == TAB_ARCHIVE) { tab = TAB_ARCHIVE }
             }
-            if (tab != TAB_ARCHIVE) {
+            if (tab == TAB_PLACES) {
+                PlacesTab(
+                    placeReminders,
+                    onEdit = { editing = it },
+                    onManagePlaces = { showPlaces = true },
+                )
+            } else if (tab != TAB_ARCHIVE) {
                 val list = if (tab == TAB_RECURRING) recurring else once
                 if (list.isEmpty()) {
                     Text(
@@ -388,22 +433,47 @@ fun App() {
             onSave = { save(it); creatingTitle = null },
         )
     }
-    editing?.let { current ->
-        EditDialog(
-            initial = current,
-            onDismiss = { editing = null },
-            onSave = { save(it); editing = null },
+    if (creatingPlaceReminder) {
+        PlaceReminderDialog(
+            initial = null,
+            onDismiss = { creatingPlaceReminder = false },
+            onSave = { save(it); creatingPlaceReminder = false },
         )
     }
+    editing?.let { current ->
+        if (current.isPlace) {
+            PlaceReminderDialog(
+                initial = current,
+                onDismiss = { editing = null },
+                onSave = { save(it); editing = null },
+            )
+        } else {
+            EditDialog(
+                initial = current,
+                onDismiss = { editing = null },
+                onSave = { save(it); editing = null },
+            )
+        }
+    }
     reopening?.let { archived ->
-        // Wieder öffnen = bearbeiten mit neuem Termin; Speichern macht sie wieder offen.
-        val at = defaultAt()
-        EditDialog(
-            initial = archived.copy(baseAt = at, fireAt = at, anchorAt = at, done = false),
-            heading = "Wieder öffnen",
-            onDismiss = { reopening = null },
-            onSave = { save(it); reopening = null },
-        )
+        if (archived.isPlace) {
+            // Wieder öffnen = wieder auf den Ort warten.
+            PlaceReminderDialog(
+                initial = archived.copy(done = false, placeArmed = true, nagCount = 0),
+                heading = "Wieder öffnen",
+                onDismiss = { reopening = null },
+                onSave = { save(it); reopening = null },
+            )
+        } else {
+            // Wieder öffnen = bearbeiten mit neuem Termin; Speichern macht sie wieder offen.
+            val at = defaultAt()
+            EditDialog(
+                initial = archived.copy(baseAt = at, fireAt = at, anchorAt = at, done = false),
+                heading = "Wieder öffnen",
+                onDismiss = { reopening = null },
+                onSave = { save(it); reopening = null },
+            )
+        }
     }
     if (confirmClear) {
         AlertDialog(
@@ -424,7 +494,14 @@ fun App() {
 
 private const val TAB_RECURRING = 0
 private const val TAB_ONCE = 1
-private const val TAB_ARCHIVE = 2
+private const val TAB_PLACES = 2
+private const val TAB_ARCHIVE = 3
+
+private fun tabOf(r: Reminder) = when {
+    r.isPlace -> TAB_PLACES
+    r.repeatType == RepeatType.NONE -> TAB_ONCE
+    else -> TAB_RECURRING
+}
 
 @Composable
 private fun TabLabel(label: String, count: Int, selected: Boolean, onClick: () -> Unit) {
@@ -460,7 +537,7 @@ private fun ArchiveCard(r: Reminder, onReopen: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
-                "War fällig: ${fmt(r.baseAt)}",
+                (if (r.isPlace) "Ausgelöst: " else "War fällig: ") + fmt(r.baseAt),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -539,6 +616,9 @@ private fun EditDialog(
 ) {
     val ctx = LocalContext.current
     var title by remember { mutableStateOf(initial?.title ?: prefillTitle) }
+    var link by remember { mutableStateOf(initial?.link ?: "") }
+    val linkValid = Links.normalize(link) != null
+    val canSave = title.isNotBlank() && linkValid
     // Liegt der aktuelle Termin am Wochenende mit eigener Uhrzeit, zeigt der Editor trotzdem die
     // normale Uhrzeit (aus anchorAt) – sie ist die Hauptuhrzeit der Serie.
     var at by remember { mutableStateOf(initial?.let(::editorStart) ?: defaultAt()) }
@@ -563,6 +643,9 @@ private fun EditDialog(
     val number = KeyboardOptions(keyboardType = KeyboardType.Number)
 
     fun save() {
+        if (!canSave) return
+        // Link im Titel wandert ins leere Linkfeld (siehe [Links.split]).
+        val (cleanTitle, rawLink) = Links.split(title, link)
         // Termin unverändert und gleiche Regel: ursprünglichen Serienstart behalten,
         // damit z. B. „am 31." nach einem 30er-Monat nicht auf den 30. rutscht.
         val keepAnchor = initial != null && at == initial.baseAt &&
@@ -570,7 +653,7 @@ private fun EditDialog(
         onSave(
             Reminder(
                 id = initial?.id ?: ReminderStore.newId(),
-                title = title.trim(),
+                title = cleanTitle,
                 baseAt = at,
                 fireAt = at,
                 anchorAt = initial?.takeIf { keepAnchor }?.anchorAt ?: at,
@@ -585,6 +668,7 @@ private fun EditDialog(
                     else -> weekendMode
                 },
                 weekendTimeMin = weekendMin,
+                link = Links.normalize(rawLink) ?: "",
             ).let(Recurrence::alignStart),
         )
     }
@@ -607,7 +691,7 @@ private fun EditDialog(
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f),
                     )
-                    TextButton(enabled = title.isNotBlank(), onClick = { save() }) {
+                    TextButton(enabled = canSave, onClick = { save() }) {
                         Text("Speichern")
                     }
                 }
@@ -624,9 +708,25 @@ private fun EditDialog(
                         singleLine = true,
                         // Eingabetaste = Speichern mit den übrigen Werten wie eingestellt.
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                        keyboardActions = KeyboardActions(
-                            onDone = { if (title.isNotBlank()) save() },
+                        keyboardActions = KeyboardActions(onDone = { save() }),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    // Ausgefüllt: Die Meldung bekommt „Link öffnen" (öffnet und hakt ab).
+                    OutlinedTextField(
+                        value = link,
+                        onValueChange = { link = it },
+                        label = { Text("Link (optional)") },
+                        placeholder = { Text("https://…") },
+                        singleLine = true,
+                        isError = !linkValid,
+                        supportingText = if (linkValid) null else {
+                            { Text("Nur http(s)-Links") }
+                        },
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Uri,
+                            imeAction = ImeAction.Done,
                         ),
+                        keyboardActions = KeyboardActions(onDone = { save() }),
                         modifier = Modifier.fillMaxWidth(),
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
