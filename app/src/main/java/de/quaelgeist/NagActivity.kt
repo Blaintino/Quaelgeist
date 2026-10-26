@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -29,12 +30,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import java.time.Instant
 import java.time.LocalDate
@@ -59,7 +62,11 @@ class NagActivity : ComponentActivity() {
         reminderId.longValue = intent.getLongExtra(Scheduler.EXTRA_ID, -1)
         setContent {
             NagTheme {
-                NagScreen(reminderId.longValue, onClose = ::finish)
+                NagScreen(
+                    reminderId.longValue,
+                    onClose = ::finish,
+                    onSwitch = { reminderId.longValue = it },
+                )
             }
         }
     }
@@ -71,8 +78,21 @@ class NagActivity : ComponentActivity() {
     }
 }
 
+/**
+ * Zwei unabhängige Hilfen für mehrere offene Erinnerungen (Wunsch des Nutzers: erst beide
+ * ausprobieren, dann ggf. eine entfernen – jede lässt sich hier einzeln abschalten bzw. samt
+ * ihrem Block löschen):
+ * - [AUTO_ADVANCE]: Nach Erledigt/Verschieben gleich die nächste offene zeigen statt schließen.
+ * - [SHOW_OTHERS]: Unten eine Liste der weiteren offenen; Tippen wechselt dorthin.
+ */
+private const val AUTO_ADVANCE = true
+private const val SHOW_OTHERS = true
+
+private fun othersNow(ctx: Context, currentId: Long): List<Reminder> =
+    OpenReminders.others(ReminderStore(ctx).all(), currentId, System.currentTimeMillis())
+
 @Composable
-private fun NagScreen(id: Long, onClose: () -> Unit) {
+private fun NagScreen(id: Long, onClose: () -> Unit, onSwitch: (Long) -> Unit) {
     val ctx = LocalContext.current
     val version by ReminderStore.version.collectAsState()
     val r = remember(id, version) { ReminderStore(ctx).get(id) }
@@ -92,10 +112,16 @@ private fun NagScreen(id: Long, onClose: () -> Unit) {
 
     fun act(block: () -> Unit) {
         block()
-        onClose()
+        // AUTO_ADVANCE: weiter zur nächsten offenen Erinnerung, sonst schließen.
+        val next = if (AUTO_ADVANCE) othersNow(ctx, r.id).firstOrNull() else null
+        if (next != null) onSwitch(next.id) else onClose()
     }
+    // Weitere offene (für den Hinweis bei AUTO_ADVANCE und die Liste bei SHOW_OTHERS);
+    // neu berechnet, sobald sich Erinnerungen ändern.
+    val others = remember(id, version) { othersNow(ctx, id) }
 
-    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    // key: beim Wechsel zur nächsten Erinnerung wieder oben anfangen.
+    key(id) { Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
             Modifier
                 .safeDrawingPadding()
@@ -115,6 +141,13 @@ private fun NagScreen(id: Long, onClose: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
+            if (AUTO_ADVANCE && others.isNotEmpty()) {
+                Text(
+                    "Danach noch ${others.size} offen",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
             Spacer(Modifier.height(16.dp))
 
             Button(
@@ -201,6 +234,23 @@ private fun NagScreen(id: Long, onClose: () -> Unit) {
                     else "Schließen",
                 )
             }
+
+            if (SHOW_OTHERS && others.isNotEmpty()) OtherOpen(others, onSwitch)
+        }
+    } }
+}
+
+/** SHOW_OTHERS: weitere offene Erinnerungen, Tippen wechselt zu ihr. */
+@Composable
+private fun OtherOpen(others: List<Reminder>, onSwitch: (Long) -> Unit) {
+    HorizontalDivider(Modifier.padding(vertical = 8.dp))
+    Text(
+        "Weitere offene Erinnerungen (${others.size})",
+        style = MaterialTheme.typography.labelLarge,
+    )
+    others.forEach { o ->
+        OutlinedButton(onClick = { onSwitch(o.id) }, modifier = Modifier.fillMaxWidth()) {
+            Text(o.title, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }

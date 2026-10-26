@@ -19,6 +19,9 @@ Google-Dienste, kein Netzwerk und keine Konten.
   *Verschieben…*. *Verschieben…* (und Tippen auf die Meldung) öffnet einen Bildschirm mit
   10 Min, 30 Min, 1 Std, 3 Std, Morgen, Montag (jeweils zur ursprünglichen Uhrzeit), frei
   wählbarer Uhrzeit und *Anderer Tag…* (Datum und Uhrzeit), dazu *In der App bearbeiten*.
+  Sind noch weitere Erinnerungen offen (fällig oder nervend), zeigt der Bildschirm nach
+  *Erledigt*/Verschieben gleich die nächste („Danach noch n offen“) und listet unten alle
+  weiteren zum Antippen; erst wenn keine mehr offen ist, schließt er sich.
   Bei gesperrtem Handy muss vorher entsperrt werden – auch für *Erledigt* in der Meldung
   (ab Android 12) –, damit nichts versehentlich abgehakt oder verschoben wird.
 - **Übersicht**: Jede Karte zeigt den Zeitpunkt der nächsten Meldung (rot, wenn überfällig).
