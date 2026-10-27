@@ -250,10 +250,13 @@ fun ReliabilityScreen(tick: Int, onBack: () -> Unit, contentPadding: PaddingValu
                                 "im Minutentakt. Handy danach sperren und auf Handy und Band " +
                                 "achten.",
                         )
-                        Button(onClick = {
-                            Reliability.scheduleTest(ctx)
-                            testScheduled = true
-                        }) { Text(if (testScheduled) "Noch ein Test" else "Test starten") }
+                        Button(
+                            onClick = {
+                                Reliability.scheduleTest(ctx)
+                                testScheduled = true
+                            },
+                            modifier = Modifier.align(Alignment.CenterHorizontally),
+                        ) { Text(if (testScheduled) "Noch ein Test" else "Test starten") }
                         if (testScheduled) {
                             Text(
                                 "Test geplant. Jetzt Handy sperren.",
@@ -304,10 +307,11 @@ private fun CheckCard(c: Check) {
             }
             Text(c.detail, style = MaterialTheme.typography.bodyMedium)
             if (c.button != null && (c.intent != null || c.permission != null)) {
+                val center = Modifier.align(Alignment.CenterHorizontally)
                 if (c.ok == false) {
-                    Button(onClick = ::press) { Text(c.button) }
+                    Button(onClick = ::press, modifier = center) { Text(c.button) }
                 } else if (c.permission == null) {
-                    OutlinedButton(onClick = ::press) { Text(c.button) }
+                    OutlinedButton(onClick = ::press, modifier = center) { Text(c.button) }
                 }
             }
         }
