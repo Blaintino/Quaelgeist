@@ -9,8 +9,10 @@ import java.time.temporal.TemporalAdjusters
 /** Zeitvorschläge der Schnelleingabe (reine Funktionen, siehe `QuickTimesTest`). */
 object QuickTimes {
 
-    fun inOneHour(now: ZonedDateTime): ZonedDateTime =
-        now.plusHours(1).withSecond(0).withNano(0)
+    fun inOneHour(now: ZonedDateTime): ZonedDateTime = inMinutes(now, 60)
+
+    fun inMinutes(now: ZonedDateTime, minutes: Long): ZonedDateTime =
+        now.plusMinutes(minutes).withSecond(0).withNano(0)
 
     /**
      * Nächster Montag zur Uhrzeit [time]; ist heute Montag, der Montag in einer Woche.

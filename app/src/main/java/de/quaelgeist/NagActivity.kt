@@ -6,6 +6,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -16,13 +17,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -125,7 +129,12 @@ private fun NagScreen(id: Long, onClose: () -> Unit, onSwitch: (Long) -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Spacer(Modifier.height(24.dp))
+            // Schließen oben links wie das ✕ in den Editoren.
+            Box(Modifier.fillMaxWidth()) {
+                IconButton(onClick = onClose, modifier = Modifier.align(Alignment.CenterStart)) {
+                    Icon(Icons.Default.Close, contentDescription = "Schließen")
+                }
+            }
             Text(
                 r.title,
                 style = MaterialTheme.typography.headlineLarge,
@@ -187,10 +196,11 @@ private fun NagScreen(id: Long, onClose: () -> Unit, onSwitch: (Long) -> Unit) {
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                SnoozeButton("Morgen", Modifier.weight(1f)) {
+                // „gleiche Uhrzeit“: unterscheidet sie von „Morgen 09:30“ usw. darüber.
+                SnoozeButton("Morgen", Modifier.weight(1f), "gleiche Uhrzeit") {
                     act { Actions.snoozeTomorrow(ctx, r.id, r.baseAt) }
                 }
-                SnoozeButton("Montag", Modifier.weight(1f)) {
+                SnoozeButton("Montag", Modifier.weight(1f), "gleiche Uhrzeit") {
                     act { Actions.snoozeNextMonday(ctx, r.id, r.baseAt) }
                 }
             }
@@ -204,14 +214,6 @@ private fun NagScreen(id: Long, onClose: () -> Unit, onSwitch: (Long) -> Unit) {
                         ),
                 )
                 onClose()
-            }
-
-            Spacer(Modifier.height(16.dp))
-            TextButton(onClick = onClose) {
-                Text(
-                    if (r.canNag) "Schließen (erinnert weiter alle ${r.nagIntervalMin} Min)"
-                    else "Schließen",
-                )
             }
 
             if (SHOW_OTHERS && others.isNotEmpty()) OtherOpen(others, onSwitch)
@@ -234,10 +236,19 @@ private fun OtherOpen(others: List<Reminder>, onSwitch: (Long) -> Unit) {
     }
 }
 
-/** [day] klein über dem Text, z. B. „Heute“ über „17:00“. */
+/**
+ * Auswahlknopf von Verschieben-Bildschirm und Schnelleingabe; [day] klein über dem Text,
+ * z. B. „Heute“ über „17:00“.
+ */
 @Composable
-private fun SnoozeButton(label: String, modifier: Modifier, day: String? = null, onClick: () -> Unit) {
-    OutlinedButton(onClick = onClick, modifier = modifier.height(52.dp)) {
+internal fun SnoozeButton(
+    label: String,
+    modifier: Modifier,
+    day: String? = null,
+    enabled: Boolean = true,
+    onClick: () -> Unit,
+) {
+    OutlinedButton(onClick = onClick, enabled = enabled, modifier = modifier.height(52.dp)) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             if (day != null) Text(day, style = MaterialTheme.typography.labelSmall, maxLines = 1)
             Text(label, maxLines = 1)

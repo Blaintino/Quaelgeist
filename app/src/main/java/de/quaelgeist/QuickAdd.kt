@@ -1,13 +1,11 @@
 package de.quaelgeist
 
-import android.app.TimePickerDialog
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.text.format.DateFormat
 import android.widget.RemoteViews
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -16,13 +14,16 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -38,6 +39,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
@@ -78,6 +80,10 @@ class QuickAddActivity : ComponentActivity() {
     }
 }
 
+/**
+ * Aufbau wie die Editoren (✕ und Überschrift oben), Zeitknöpfe wie der Verschieben-Bildschirm
+ * (Wunsch des Nutzers: einheitliche Fenster). Alles Genauere im Editor.
+ */
 @Composable
 private fun QuickAddDialog(onClose: () -> Unit) {
     val ctx = LocalContext.current
@@ -101,97 +107,82 @@ private fun QuickAddDialog(onClose: () -> Unit) {
         onClose()
     }
 
+    fun openEditor() {
+        ctx.startActivity(
+            Intent(ctx, MainActivity::class.java)
+                .putExtra(MainActivity.EXTRA_NEW_TITLE, title.trim())
+                .addFlags(
+                    Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                        Intent.FLAG_ACTIVITY_SINGLE_TOP,
+                ),
+        )
+        onClose()
+    }
+
     val keyboard = LocalSoftwareKeyboardController.current
     LaunchedEffect(Unit) {
         focus.requestFocus()
         keyboard?.show()
     }
 
-    AlertDialog(
-        onDismissRequest = onClose,
-        title = { Text("Neue Erinnerung") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    label = { Text("Woran erinnern?") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(
-                        capitalization = KeyboardCapitalization.Sentences,
-                        imeAction = ImeAction.Done,
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .focusRequester(focus),
-                )
-                Text("Wann?", style = MaterialTheme.typography.labelLarge)
-                // Feste Uhrzeiten 9:30 und 17:00: heute, falls noch nicht vorbei, sonst morgen.
-                // Die Beschriftung zeigt, welcher Tag gemeint ist.
-                val (first, second) = QuickTimes.PRESETS.map { QuickTimes.atTime(now, it) }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TimeButton(timeLabel(first), ready, Modifier.weight(1f), dayLabel(first, now)) {
-                        saveAt(QuickTimes.atTime(ZonedDateTime.now(zone), first.toLocalTime()))
+    Dialog(onDismissRequest = onClose) {
+        Surface(shape = MaterialTheme.shapes.extraLarge, tonalElevation = 6.dp) {
+            Column(Modifier.padding(bottom = 16.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth().padding(start = 4.dp, end = 8.dp, top = 8.dp),
+                ) {
+                    IconButton(onClick = onClose) {
+                        Icon(Icons.Default.Close, contentDescription = "Abbrechen")
                     }
-                    TimeButton(timeLabel(second), ready, Modifier.weight(1f), dayLabel(second, now)) {
-                        saveAt(QuickTimes.atTime(ZonedDateTime.now(zone), second.toLocalTime()))
-                    }
+                    Text(
+                        "Neue Erinnerung",
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.weight(1f),
+                    )
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TimeButton("In 1 Std", ready, Modifier.weight(1f)) {
-                        saveAt(QuickTimes.inOneHour(ZonedDateTime.now(zone)))
+                Column(
+                    Modifier.padding(horizontal = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    OutlinedTextField(
+                        value = title,
+                        onValueChange = { title = it },
+                        label = { Text("Woran erinnern?") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(
+                            capitalization = KeyboardCapitalization.Sentences,
+                            imeAction = ImeAction.Done,
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(focus),
+                    )
+                    SectionLabel("Wann?")
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        SnoozeButton("10 Min", Modifier.weight(1f), enabled = ready) {
+                            saveAt(QuickTimes.inMinutes(ZonedDateTime.now(zone), 10))
+                        }
+                        SnoozeButton("1 Std", Modifier.weight(1f), enabled = ready) {
+                            saveAt(QuickTimes.inOneHour(ZonedDateTime.now(zone)))
+                        }
                     }
-                    TimeButton("Uhrzeit…", ready, Modifier.weight(1f)) {
-                        val start = ZonedDateTime.now(zone)
-                        TimePickerDialog(
-                            ctx,
-                            { _, h, min -> saveAt(QuickTimes.atTime(ZonedDateTime.now(zone), h, min)) },
-                            start.hour, start.minute, DateFormat.is24HourFormat(ctx),
-                        ).show()
+                    // Feste Uhrzeiten 9:30 und 17:00: heute, falls noch nicht vorbei, sonst morgen.
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        QuickTimes.PRESETS.forEach { preset ->
+                            val at = QuickTimes.atTime(now, preset)
+                            SnoozeButton(
+                                preset.format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)),
+                                Modifier.weight(1f),
+                                if (at.toLocalDate() == now.toLocalDate()) "Heute" else "Morgen",
+                                enabled = ready,
+                            ) { saveAt(QuickTimes.atTime(ZonedDateTime.now(zone), preset)) }
+                        }
                     }
+                    SnoozeButton("Im Editor öffnen", Modifier.fillMaxWidth(), onClick = ::openEditor)
                 }
             }
-        },
-        confirmButton = {
-            TextButton(onClick = {
-                ctx.startActivity(
-                    Intent(ctx, MainActivity::class.java)
-                        .putExtra(MainActivity.EXTRA_NEW_TITLE, title.trim())
-                        .addFlags(
-                            Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                                Intent.FLAG_ACTIVITY_SINGLE_TOP,
-                        ),
-                )
-                onClose()
-            }) { Text("Mehr Optionen") }
-        },
-        dismissButton = { TextButton(onClick = onClose) { Text("Abbrechen") } },
-    )
-}
-
-/** „Heute" oder „Morgen" – je nachdem, ob die Uhrzeit heute schon vorbei ist. */
-private fun dayLabel(at: ZonedDateTime, now: ZonedDateTime): String =
-    if (at.toLocalDate() == now.toLocalDate()) "Heute" else "Morgen"
-
-private fun timeLabel(at: ZonedDateTime): String =
-    at.format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT))
-
-/**
- * [day] steht klein über der Uhrzeit: In einer Zeile passte „Morgen 9:30" nicht auf den
- * halb breiten Knopf und wurde nach „Morgen" abgeschnitten.
- */
-@Composable
-private fun TimeButton(
-    label: String,
-    enabled: Boolean,
-    modifier: Modifier,
-    day: String? = null,
-    onClick: () -> Unit,
-) {
-    FilledTonalButton(onClick = onClick, enabled = enabled, modifier = modifier) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            if (day != null) Text(day, style = MaterialTheme.typography.labelSmall, maxLines = 1)
-            Text(label, maxLines = 1, softWrap = false)
         }
     }
 }

@@ -20,6 +20,11 @@ class QuickTimesTest {
     }
 
     @Test
+    fun inTenMinutesDropsSeconds() {
+        assertEquals(at(12, 14, 40), QuickTimes.inMinutes(at(12, 14, 30, 42), 10))
+    }
+
+    @Test
     fun presetsTodayOrTomorrow() {
         val (morning, evening) = QuickTimes.PRESETS
         assertEquals(at(12, 9, 30), QuickTimes.atTime(at(12, 8, 0), morning))
