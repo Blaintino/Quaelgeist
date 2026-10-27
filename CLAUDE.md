@@ -94,8 +94,7 @@ Cloud-Sessions haben weder Emulator noch Handy.
   `maxNags` bleibt beim Speichern erhalten; Link-Feld ganz am Ende. Karten-Schnellaktionen
   (`CardActions`) auch auf ausgelösten Orts-Karten.
 - Uhrzeit-Regel (Wunsch des Nutzers): Wird im Editor Datum oder Uhrzeit gewählt (auch per
-  Chip) oder beim Verschieben „Anderer Tag…“ genutzt und liegt der Zeitpunkt nicht in der
-  Zukunft, gilt der nächste Tag zu dieser Uhrzeit (`QuickTimes.onDayOrNext`). Unangetastete
+  Chip) und liegt der Zeitpunkt nicht in der Zukunft, gilt der nächste Tag zu dieser Uhrzeit (`QuickTimes.onDayOrNext`). Unangetastete
   Termine beim Bearbeiten werden nicht verschoben.
 - Links (`Links.kt`, Tests `LinksTest`): optionales Feld `Reminder.link`, nur http(s)
   (Wunsch des Nutzers). Beim Speichern (Editor und Schnelleingabe) wandert ein Link aus dem
