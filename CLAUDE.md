@@ -173,7 +173,7 @@ Cloud-Sessions haben weder Emulator noch Handy.
   In Compose über `rememberSettings()` (lädt bei `Settings.version` neu).
 - `BootReceiver` plant nach Neustart, App-Update und Zeitänderung alle Alarme neu.
 - Tabs in `App()`: `TAB_RECURRING` (offen, `repeatType != NONE`), `TAB_ONCE` (offen,
-  einmalig), `TAB_ARCHIVE` (`done`). Start-Tab beim Öffnen ist `TAB_ONCE` (Wunsch des Nutzers). `save()` wechselt in den Tab der gespeicherten
+  einmalig), `TAB_ARCHIVE` (`done`). Start-Tab beim Öffnen aus den Einstellungen (Vorgabe `TAB_ONCE`, Wunsch des Nutzers); dazu `TAB_PLACES`. `save()` wechselt in den Tab der gespeicherten
   Erinnerung; + im Tab „Wiederkehrend“ startet den Editor mit `prefillType = DAILY`.
 - Archiv: erledigt = `done` (nur einmalige; Serien rücken beim Abhaken vor). `doneAt` wird in
   `Actions.markDone` gesetzt, alte Einträge haben 0 und werden im Archiv nach `baseAt`
