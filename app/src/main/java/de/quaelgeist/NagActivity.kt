@@ -77,15 +77,12 @@ class NagActivity : ComponentActivity() {
     }
 }
 
-/**
- * Zwei unabhängige Hilfen für mehrere offene Erinnerungen (Wunsch des Nutzers: erst beide
- * ausprobieren, dann ggf. eine entfernen – jede lässt sich hier einzeln abschalten bzw. samt
- * ihrem Block löschen):
- * - [AUTO_ADVANCE]: Nach Erledigt/Verschieben gleich die nächste offene zeigen statt schließen.
- * - [SHOW_OTHERS]: Unten eine Liste der weiteren offenen; Tippen wechselt dorthin.
+/*
+ * Zwei unabhängige Hilfen für mehrere offene Erinnerungen, beide in den Einstellungen
+ * schaltbar (Wunsch des Nutzers: ausprobieren ohne neue Version):
+ * - autoAdvance: Nach Erledigt/Verschieben gleich die nächste offene zeigen statt schließen.
+ * - showOthers: Unten eine Liste der weiteren offenen; Tippen wechselt dorthin.
  */
-private const val AUTO_ADVANCE = true
-private const val SHOW_OTHERS = true
 
 private fun othersNow(ctx: Context, currentId: Long): List<Reminder> =
     OpenReminders.others(ReminderStore(ctx).all(), currentId, System.currentTimeMillis())
@@ -93,6 +90,7 @@ private fun othersNow(ctx: Context, currentId: Long): List<Reminder> =
 @Composable
 private fun NagScreen(id: Long, onClose: () -> Unit, onSwitch: (Long) -> Unit) {
     val ctx = LocalContext.current
+    val settings = rememberSettings()
     val version by ReminderStore.version.collectAsState()
     val r = remember(id, version) { ReminderStore(ctx).get(id) }
     // Termin, für den der Bildschirm geöffnet wurde. Wird er anderswo erledigt (Schaltfläche
@@ -111,11 +109,11 @@ private fun NagScreen(id: Long, onClose: () -> Unit, onSwitch: (Long) -> Unit) {
 
     fun act(block: () -> Unit) {
         block()
-        // AUTO_ADVANCE: weiter zur nächsten offenen Erinnerung, sonst schließen.
-        val next = if (AUTO_ADVANCE) othersNow(ctx, r.id).firstOrNull() else null
+        // autoAdvance: weiter zur nächsten offenen Erinnerung, sonst schließen.
+        val next = if (settings.autoAdvance) othersNow(ctx, r.id).firstOrNull() else null
         if (next != null) onSwitch(next.id) else onClose()
     }
-    // Weitere offene (für den Hinweis bei AUTO_ADVANCE und die Liste bei SHOW_OTHERS);
+    // Weitere offene (für den Hinweis bei autoAdvance und die Liste bei showOthers);
     // neu berechnet, sobald sich Erinnerungen ändern.
     val others = remember(id, version) { othersNow(ctx, id) }
 
@@ -145,7 +143,7 @@ private fun NagScreen(id: Long, onClose: () -> Unit, onSwitch: (Long) -> Unit) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
-            if (AUTO_ADVANCE && others.isNotEmpty()) {
+            if (settings.autoAdvance && others.isNotEmpty()) {
                 Text(
                     "Danach noch ${others.size} offen",
                     style = MaterialTheme.typography.bodySmall,
@@ -173,16 +171,16 @@ private fun NagScreen(id: Long, onClose: () -> Unit, onSwitch: (Long) -> Unit) {
             // Wunsch des Nutzers: 10 Min/1 Std, die festen Uhrzeiten wie im Editor, Morgen/Montag;
             // alles Genauere (Uhrzeit, anderer Tag, Titel …) im Editor.
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                SnoozeButton("10 Min", Modifier.weight(1f)) {
-                    act { Actions.snooze(ctx, r.id, 10, r.baseAt) }
-                }
-                SnoozeButton("1 Std", Modifier.weight(1f)) {
-                    act { Actions.snooze(ctx, r.id, 60, r.baseAt) }
+                settings.snoozeMinutes.forEach { m ->
+                    SnoozeButton(SettingsRules.durationLabel(m), Modifier.weight(1f)) {
+                        act { Actions.snooze(ctx, r.id, m, r.baseAt) }
+                    }
                 }
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                // Heute, falls noch nicht vorbei, sonst morgen (wie im Widget).
-                QuickTimes.PRESETS.forEach { preset ->
+            // Feste Uhrzeiten aus den Einstellungen, je zwei pro Reihe; heute, falls noch nicht
+            // vorbei, sonst morgen (wie im Widget).
+            settings.presets.chunked(2).forEach { pair -> Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                pair.forEach { preset ->
                     val now = ZonedDateTime.now(zone)
                     val at = QuickTimes.atTime(now, preset)
                     val day = if (at.toLocalDate() == now.toLocalDate()) "Heute" else "Morgen"
@@ -194,7 +192,7 @@ private fun NagScreen(id: Long, onClose: () -> Unit, onSwitch: (Long) -> Unit) {
                         act { Actions.snoozeUntil(ctx, r.id, at.toInstant().toEpochMilli(), r.baseAt) }
                     }
                 }
-            }
+            } }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 // „gleiche Uhrzeit“: unterscheidet sie von „Morgen 09:30“ usw. darüber.
                 SnoozeButton("Morgen", Modifier.weight(1f), "gleiche Uhrzeit") {
@@ -216,12 +214,12 @@ private fun NagScreen(id: Long, onClose: () -> Unit, onSwitch: (Long) -> Unit) {
                 onClose()
             }
 
-            if (SHOW_OTHERS && others.isNotEmpty()) OtherOpen(others, onSwitch)
+            if (settings.showOthers && others.isNotEmpty()) OtherOpen(others, onSwitch)
         }
     } }
 }
 
-/** SHOW_OTHERS: weitere offene Erinnerungen, Tippen wechselt zu ihr. */
+/** showOthers: weitere offene Erinnerungen, Tippen wechselt zu ihr. */
 @Composable
 private fun OtherOpen(others: List<Reminder>, onSwitch: (Long) -> Unit) {
     HorizontalDivider(Modifier.padding(vertical = 8.dp))

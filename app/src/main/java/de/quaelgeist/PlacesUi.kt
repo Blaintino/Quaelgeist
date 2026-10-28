@@ -230,12 +230,17 @@ fun PlaceReminderDialog(
     var placeId by remember { mutableLongStateOf(initial?.placeId ?: places.firstOrNull()?.id ?: 0L) }
     var trigger by remember { mutableStateOf(initial?.placeTrigger ?: PlaceTrigger.ARRIVE) }
     var windowOn by remember { mutableStateOf((initial?.windowStartMin ?: -1) >= 0) }
-    var windowStart by remember { mutableIntStateOf(initial?.windowStartMin?.takeIf { it >= 0 } ?: (8 * 60)) }
-    var windowEnd by remember { mutableIntStateOf(initial?.windowEndMin?.takeIf { it >= 0 } ?: (20 * 60)) }
-    var interval by remember {
-        mutableStateOf((initial?.checkIntervalMin ?: GeoLogic.DEFAULT_INTERVAL_MIN).toString())
+    val settings = rememberSettings()
+    var windowStart by remember {
+        mutableIntStateOf(initial?.windowStartMin?.takeIf { it >= 0 } ?: settings.placeWindowStartMin)
     }
-    var nag by remember { mutableStateOf((initial?.nagIntervalMin ?: 10).toString()) }
+    var windowEnd by remember {
+        mutableIntStateOf(initial?.windowEndMin?.takeIf { it >= 0 } ?: settings.placeWindowEndMin)
+    }
+    var interval by remember {
+        mutableStateOf((initial?.checkIntervalMin ?: settings.placeIntervalMin).toString())
+    }
+    var nag by remember { mutableStateOf((initial?.nagIntervalMin ?: settings.nagIntervalMin).toString()) }
     var menu by remember { mutableStateOf(false) }
     var newPlace by remember { mutableStateOf(false) }
 
@@ -268,7 +273,7 @@ fun PlaceReminderDialog(
             placeArmed = true,
             windowStartMin = if (windowOn) windowStart else -1,
             windowEndMin = if (windowOn) windowEnd else -1,
-            checkIntervalMin = (interval.toIntOrNull() ?: GeoLogic.DEFAULT_INTERVAL_MIN)
+            checkIntervalMin = (interval.toIntOrNull() ?: settings.placeIntervalMin)
                 .coerceAtLeast(GeoLogic.MIN_INTERVAL_MIN),
         )
         val r = if (keep && initial != null) {
@@ -570,7 +575,8 @@ private fun PlaceDialog(
     var where by remember {
         mutableStateOf(initial?.let { coords(it.lat, it.lon) } ?: prefillText.orEmpty())
     }
-    var radius by remember { mutableStateOf((initial?.radiusM ?: GeoLogic.DEFAULT_RADIUS_M).toString()) }
+    val defaultRadius = rememberSettings().placeRadiusM
+    var radius by remember { mutableStateOf((initial?.radiusM ?: defaultRadius).toString()) }
     var ssids by remember { mutableStateOf(initial?.ssids.orEmpty()) }
     var newSsid by remember { mutableStateOf("") }
     var locating by remember { mutableStateOf(false) }

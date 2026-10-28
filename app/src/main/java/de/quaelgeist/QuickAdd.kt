@@ -92,6 +92,7 @@ private fun QuickAddDialog(onClose: () -> Unit) {
     val zone = ZoneId.systemDefault()
     val now = remember { ZonedDateTime.now(zone) }
     val ready = title.isNotBlank()
+    val settings = rememberSettings()
 
     fun saveAt(at: ZonedDateTime) {
         val ms = at.toInstant().toEpochMilli()
@@ -99,6 +100,7 @@ private fun QuickAddDialog(onClose: () -> Unit) {
         val (cleanTitle, link) = Links.split(title, "")
         val r = Reminder(
             id = ReminderStore.newId(), title = cleanTitle, baseAt = ms, fireAt = ms, link = link,
+            nagIntervalMin = settings.nagIntervalMin,
         )
         ReminderStore(ctx).upsert(r)
         Scheduler.schedule(ctx, r)
@@ -160,24 +162,26 @@ private fun QuickAddDialog(onClose: () -> Unit) {
                             .focusRequester(focus),
                     )
                     SectionLabel("Wann?")
+                    // Dauern und feste Uhrzeiten aus den Einstellungen, je zwei pro Reihe.
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        SnoozeButton("10 Min", Modifier.weight(1f), enabled = ready) {
-                            saveAt(QuickTimes.inMinutes(ZonedDateTime.now(zone), 10))
-                        }
-                        SnoozeButton("1 Std", Modifier.weight(1f), enabled = ready) {
-                            saveAt(QuickTimes.inOneHour(ZonedDateTime.now(zone)))
+                        settings.snoozeMinutes.forEach { m ->
+                            SnoozeButton(SettingsRules.durationLabel(m), Modifier.weight(1f), enabled = ready) {
+                                saveAt(QuickTimes.inMinutes(ZonedDateTime.now(zone), m.toLong()))
+                            }
                         }
                     }
-                    // Feste Uhrzeiten 9:30 und 17:00: heute, falls noch nicht vorbei, sonst morgen.
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        QuickTimes.PRESETS.forEach { preset ->
-                            val at = QuickTimes.atTime(now, preset)
-                            SnoozeButton(
-                                preset.format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)),
-                                Modifier.weight(1f),
-                                if (at.toLocalDate() == now.toLocalDate()) "Heute" else "Morgen",
-                                enabled = ready,
-                            ) { saveAt(QuickTimes.atTime(ZonedDateTime.now(zone), preset)) }
+                    // Feste Uhrzeiten: heute, falls noch nicht vorbei, sonst morgen.
+                    settings.presets.chunked(2).forEach { pair ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            pair.forEach { preset ->
+                                val at = QuickTimes.atTime(now, preset)
+                                SnoozeButton(
+                                    preset.format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)),
+                                    Modifier.weight(1f),
+                                    if (at.toLocalDate() == now.toLocalDate()) "Heute" else "Morgen",
+                                    enabled = ready,
+                                ) { saveAt(QuickTimes.atTime(ZonedDateTime.now(zone), preset)) }
+                            }
                         }
                     }
                     SnoozeButton("Im Editor öffnen", Modifier.fillMaxWidth(), onClick = ::openEditor)
