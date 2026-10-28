@@ -1,14 +1,12 @@
 package de.quaelgeist
 
-import android.app.DatePickerDialog
-import android.app.TimePickerDialog
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.text.format.DateFormat
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -19,13 +17,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -40,8 +41,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import java.time.Instant
-import java.time.LocalDate
-import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
@@ -130,7 +129,12 @@ private fun NagScreen(id: Long, onClose: () -> Unit, onSwitch: (Long) -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Spacer(Modifier.height(24.dp))
+            // Schließen oben links wie das ✕ in den Editoren.
+            Box(Modifier.fillMaxWidth()) {
+                IconButton(onClick = onClose, modifier = Modifier.align(Alignment.CenterStart)) {
+                    Icon(Icons.Default.Close, contentDescription = "Schließen")
+                }
+            }
             Text(
                 r.title,
                 style = MaterialTheme.typography.headlineLarge,
@@ -166,56 +170,41 @@ private fun NagScreen(id: Long, onClose: () -> Unit, onSwitch: (Long) -> Unit) {
 
             Spacer(Modifier.height(8.dp))
             Text("Verschieben um", style = MaterialTheme.typography.labelLarge)
+            // Wunsch des Nutzers: 10 Min/1 Std, die festen Uhrzeiten wie im Editor, Morgen/Montag;
+            // alles Genauere (Uhrzeit, anderer Tag, Titel …) im Editor.
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 SnoozeButton("10 Min", Modifier.weight(1f)) {
                     act { Actions.snooze(ctx, r.id, 10, r.baseAt) }
                 }
-                SnoozeButton("30 Min", Modifier.weight(1f)) {
-                    act { Actions.snooze(ctx, r.id, 30, r.baseAt) }
-                }
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 SnoozeButton("1 Std", Modifier.weight(1f)) {
                     act { Actions.snooze(ctx, r.id, 60, r.baseAt) }
                 }
-                SnoozeButton("3 Std", Modifier.weight(1f)) {
-                    act { Actions.snooze(ctx, r.id, 180, r.baseAt) }
-                }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                SnoozeButton("Morgen", Modifier.weight(1f)) {
-                    act { Actions.snoozeTomorrow(ctx, r.id, r.baseAt) }
-                }
-                SnoozeButton("Uhrzeit…", Modifier.weight(1f)) {
-                    val now = Instant.now().atZone(zone)
-                    TimePickerDialog(
-                        ctx,
-                        { _, h, min ->
-                            // Liegt die Uhrzeit heute schon zurück, ist morgen gemeint.
-                            var at = now.withHour(h).withMinute(min).withSecond(0).withNano(0)
-                            if (!at.isAfter(now)) at = at.plusDays(1)
-                            act {
-                                Actions.snoozeUntil(
-                                    ctx, r.id, at.toInstant().toEpochMilli(), r.baseAt,
-                                )
-                            }
-                        },
-                        now.hour, now.minute, DateFormat.is24HourFormat(ctx),
-                    ).show()
-                }
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                SnoozeButton("Montag", Modifier.weight(1f)) {
-                    act { Actions.snoozeNextMonday(ctx, r.id, r.baseAt) }
-                }
-                SnoozeButton("Anderer Tag…", Modifier.weight(1f)) {
-                    pickDayAndTime(ctx, r) { at ->
-                        act { Actions.snoozeUntil(ctx, r.id, at, r.baseAt) }
+                // Heute, falls noch nicht vorbei, sonst morgen (wie im Widget).
+                QuickTimes.PRESETS.forEach { preset ->
+                    val now = ZonedDateTime.now(zone)
+                    val at = QuickTimes.atTime(now, preset)
+                    val day = if (at.toLocalDate() == now.toLocalDate()) "Heute" else "Morgen"
+                    SnoozeButton(
+                        preset.format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)),
+                        Modifier.weight(1f),
+                        day,
+                    ) {
+                        act { Actions.snoozeUntil(ctx, r.id, at.toInstant().toEpochMilli(), r.baseAt) }
                     }
                 }
             }
-            // Für echte Änderungen (Titel, Wiederholung, Termin der Serie) den Editor öffnen.
-            TextButton(onClick = {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // „gleiche Uhrzeit“: unterscheidet sie von „Morgen 09:30“ usw. darüber.
+                SnoozeButton("Morgen", Modifier.weight(1f), "gleiche Uhrzeit") {
+                    act { Actions.snoozeTomorrow(ctx, r.id, r.baseAt) }
+                }
+                SnoozeButton("Montag", Modifier.weight(1f), "gleiche Uhrzeit") {
+                    act { Actions.snoozeNextMonday(ctx, r.id, r.baseAt) }
+                }
+            }
+            SnoozeButton("Im Editor bearbeiten", Modifier.fillMaxWidth()) {
                 ctx.startActivity(
                     Intent(ctx, MainActivity::class.java)
                         .putExtra(MainActivity.EXTRA_EDIT_ID, r.id)
@@ -225,14 +214,6 @@ private fun NagScreen(id: Long, onClose: () -> Unit, onSwitch: (Long) -> Unit) {
                         ),
                 )
                 onClose()
-            }) { Text("In der App bearbeiten") }
-
-            Spacer(Modifier.height(16.dp))
-            TextButton(onClick = onClose) {
-                Text(
-                    if (r.canNag) "Schließen (erinnert weiter alle ${r.nagIntervalMin} Min)"
-                    else "Schließen",
-                )
             }
 
             if (SHOW_OTHERS && others.isNotEmpty()) OtherOpen(others, onSwitch)
@@ -256,34 +237,21 @@ private fun OtherOpen(others: List<Reminder>, onSwitch: (Long) -> Unit) {
 }
 
 /**
- * „Anderer Tag…": erst das Datum, dann die Uhrzeit (vorbelegt mit der des ursprünglichen
- * Termins). Liegt der Zeitpunkt schon zurück, gilt der nächste Tag zu dieser Uhrzeit.
+ * Auswahlknopf von Verschieben-Bildschirm und Schnelleingabe; [day] klein über dem Text,
+ * z. B. „Heute“ über „17:00“.
  */
-private fun pickDayAndTime(ctx: Context, r: Reminder, onPicked: (Long) -> Unit) {
-    val zone = ZoneId.systemDefault()
-    val now = ZonedDateTime.now(zone)
-    val original = Instant.ofEpochMilli(r.baseAt).atZone(zone)
-    val start = now.plusDays(1)
-    DatePickerDialog(
-        ctx,
-        { _, y, m, d ->
-            TimePickerDialog(
-                ctx,
-                { _, h, min ->
-                    val at = QuickTimes.onDayOrNext(
-                        LocalDate.of(y, m + 1, d), LocalTime.of(h, min), ZonedDateTime.now(zone),
-                    )
-                    onPicked(at.toInstant().toEpochMilli())
-                },
-                original.hour, original.minute, DateFormat.is24HourFormat(ctx),
-            ).show()
-        },
-        start.year, start.monthValue - 1, start.dayOfMonth,
-    ).apply { datePicker.minDate = now.toLocalDate().atStartOfDay(zone).toInstant().toEpochMilli() }
-        .show()
-}
-
 @Composable
-private fun SnoozeButton(label: String, modifier: Modifier, onClick: () -> Unit) {
-    OutlinedButton(onClick = onClick, modifier = modifier.height(52.dp)) { Text(label) }
+internal fun SnoozeButton(
+    label: String,
+    modifier: Modifier,
+    day: String? = null,
+    enabled: Boolean = true,
+    onClick: () -> Unit,
+) {
+    OutlinedButton(onClick = onClick, enabled = enabled, modifier = modifier.height(52.dp)) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            if (day != null) Text(day, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+            Text(label, maxLines = 1)
+        }
+    }
 }

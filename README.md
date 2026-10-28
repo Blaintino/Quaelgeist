@@ -9,16 +9,15 @@ Google-Dienste, kein Netzwerk und keine Konten.
 
 ## Funktionen
 
-- **Nagging bis erledigt**: pro Erinnerung ein Intervall in Minuten und optional eine
-  Höchstzahl an Wiederholungen (0 = unbegrenzt).
+- **Erinnern bis erledigt**: pro Erinnerung ein Intervall in Minuten.
 - **Wochenend-Modus** (täglich und wöchentlich mit Sa/So): am Wochenende *Normal*,
   *Aussetzen* (nur täglich) oder *Andere Uhrzeit* (Vorgabe 7:00).
 - **Wiederkehrende Regeln**: täglich, werktags (Mo–Fr), wöchentlich (mit Wochentagen), monatlich am Datum,
   monatlich am n-ten Wochentag (z. B. jeden 3. Mittwoch), jeweils „alle N" Tage/Wochen/Monate.
 - **Erledigt oder Verschieben**: In der Benachrichtigung stehen *Erledigt* und
   *Verschieben…*. *Verschieben…* (und Tippen auf die Meldung) öffnet einen Bildschirm mit
-  10 Min, 30 Min, 1 Std, 3 Std, Morgen, Montag (jeweils zur ursprünglichen Uhrzeit), frei
-  wählbarer Uhrzeit und *Anderer Tag…* (Datum und Uhrzeit), dazu *In der App bearbeiten*.
+  10 Min, 1 Std, 9:30 und 17:00 (heute oder morgen), Morgen und Montag (jeweils zur gleichen
+  Uhrzeit) sowie *Im Editor bearbeiten* für alles Genauere; ✕ oben links schließt.
   Sind noch weitere Erinnerungen offen (fällig oder nervend), zeigt der Bildschirm nach
   *Erledigt*/Verschieben gleich die nächste („Danach noch n offen“) und listet unten alle
   weiteren zum Antippen; erst wenn keine mehr offen ist, schließt er sich.
@@ -30,9 +29,9 @@ Google-Dienste, kein Netzwerk und keine Konten.
   entfallen. Überfällig ist, was gerade nervt oder ohne Erledigung liegen geblieben ist –
   Verschobenes steht unter dem neuen Tag.
 - **Editor**: *Speichern* steht oben in der Kopfzeile, damit die Tastatur es nicht verdeckt;
-  die Eingabetaste im Titelfeld speichert ebenfalls. Schnellwahl *9:30* und *17:00* unter der
-  Uhrzeit. Liegt eine gewählte Uhrzeit an dem Tag schon zurück, rückt der Termin auf den
-  nächsten Tag zu dieser Uhrzeit (gilt auch für *Anderer Tag…* beim Verschieben).
+  die Eingabetaste im Titelfeld speichert ebenfalls. Schnellwahl *9:30* und *17:00* vor Datum
+  und Uhrzeit. Liegt eine gewählte Uhrzeit an dem Tag schon zurück, rückt der Termin auf den
+  nächsten Tag zu dieser Uhrzeit. Das Link-Feld steht am Ende.
 - **Links**: Im Editor gibt es ein optionales Feld *Link* (nur `http(s)`, ohne Schema wird
   `https://` ergänzt). Steht beim Speichern ein Link im Titel und ist das Feld leer, wandert
   der Link ins Feld (auch in der Schnelleingabe); besteht der Titel nur aus dem Link, bleibt er
@@ -69,10 +68,10 @@ Google-Dienste, kein Netzwerk und keine Konten.
   oder *Archiv leeren*. Wiederkehrende Erinnerungen springen beim Abhaken zum nächsten
   Termin und bleiben unter *Wiederkehrend*.
 - **Schnelleingabe-Widget**: Homescreen lange drücken → *Widgets* → *Quälgeist*. Ein Tipp
-  öffnet ein kleines Fenster mit Tastatur: Titel tippen, dann *9:30*, *17:00* (jeweils heute,
-  falls noch nicht vorbei, sonst morgen – die Beschriftung zeigt es), *In 1 Std* oder
-  *Uhrzeit…* – gespeichert mit 10-Minuten-Nagging, ohne Wiederholung.
-  *Mehr Optionen* öffnet den vollen Editor mit dem getippten Titel.
+  öffnet ein kleines Fenster mit Tastatur: Titel tippen, dann *10 Min*, *1 Std*, *9:30* oder
+  *17:00* (jeweils heute, falls noch nicht vorbei, sonst morgen – die Beschriftung zeigt es) –
+  gespeichert mit 10-Minuten-Erinnern, ohne Wiederholung. *Im Editor öffnen* öffnet den
+  vollen Editor mit dem getippten Titel.
 - **Smartwatch / Fitnessband**: Die Meldung ist so gebaut, dass Begleit-Apps wie Huawei
   Health sie weiterleiten (nicht „laufend“, jede Wiederholung als neue Meldung). Eine eigene
   Uhr-App gibt es nicht.

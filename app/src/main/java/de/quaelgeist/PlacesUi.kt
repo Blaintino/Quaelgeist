@@ -57,6 +57,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -131,8 +132,10 @@ fun PlacesTab(list: List<Reminder>, onEdit: (Reminder) -> Unit, onManagePlaces: 
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
-            OutlinedButton(onClick = onManagePlaces) {
-                Text("Orte verwalten (${places.size})")
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                OutlinedButton(onClick = onManagePlaces) {
+                    Text("Orte verwalten (${places.size})")
+                }
             }
         }
         if (list.isEmpty()) {
@@ -141,6 +144,8 @@ fun PlacesTab(list: List<Reminder>, onEdit: (Reminder) -> Unit, onManagePlaces: 
                     "Keine Orts-Erinnerungen, z. B. „Toilettenpapier kaufen“ beim Verlassen der " +
                         "Arbeit. Tippe auf +, um eine anzulegen.",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
         }
@@ -171,7 +176,12 @@ fun PlacesTab(list: List<Reminder>, onEdit: (Reminder) -> Unit, onManagePlaces: 
 private fun PlaceReminderCard(r: Reminder, place: Place?, onEdit: (Reminder) -> Unit) {
     val ctx = LocalContext.current
     Card(onClick = { onEdit(r) }, modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp)) {
+        // Abstände wie die Karten in Einmalig/Wiederkehrend.
+        Column(
+            Modifier.padding(
+                start = 16.dp, end = 8.dp, top = 12.dp, bottom = if (r.placeArmed) 12.dp else 4.dp,
+            ),
+        ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     r.title,
@@ -197,6 +207,8 @@ private fun PlaceReminderCard(r: Reminder, place: Place?, onEdit: (Reminder) -> 
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            // Ausgelöst: dieselben Schnellaktionen wie die anderen Karten.
+            if (!r.placeArmed) CardActions(r)
         }
     }
 }
@@ -224,7 +236,6 @@ fun PlaceReminderDialog(
         mutableStateOf((initial?.checkIntervalMin ?: GeoLogic.DEFAULT_INTERVAL_MIN).toString())
     }
     var nag by remember { mutableStateOf((initial?.nagIntervalMin ?: 10).toString()) }
-    var maxNags by remember { mutableStateOf((initial?.maxNags ?: 0).toString()) }
     var menu by remember { mutableStateOf(false) }
     var newPlace by remember { mutableStateOf(false) }
 
@@ -242,7 +253,7 @@ fun PlaceReminderDialog(
         if (!canSave || place == null) return
         val (cleanTitle, rawLink) = Links.split(title, link)
         val now = System.currentTimeMillis()
-        // Nur Text/Nagging geändert: Zustand (wartend oder ausgelöst) behalten.
+        // Nur Text/Erinnern geändert: Zustand (wartend oder ausgelöst) behalten.
         val keep = initial != null && initial.placeId == place.id && initial.placeTrigger == trigger
         val base = Reminder(
             id = initial?.id ?: ReminderStore.newId(),
@@ -251,7 +262,7 @@ fun PlaceReminderDialog(
             fireAt = now,
             link = Links.normalize(rawLink) ?: "",
             nagIntervalMin = nag.toIntOrNull() ?: 0,
-            maxNags = maxNags.toIntOrNull() ?: 0,
+            maxNags = initial?.maxNags ?: 0,
             placeId = place.id,
             placeTrigger = trigger,
             placeArmed = true,
@@ -296,6 +307,7 @@ fun PlaceReminderDialog(
                         .padding(horizontal = 24.dp)
                         .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     OutlinedTextField(
                         value = title,
@@ -306,25 +318,10 @@ fun PlaceReminderDialog(
                         keyboardActions = KeyboardActions(onDone = { save() }),
                         modifier = Modifier.fillMaxWidth(),
                     )
-                    OutlinedTextField(
-                        value = link,
-                        onValueChange = { link = it },
-                        label = { Text("Link (optional)") },
-                        singleLine = true,
-                        isError = !linkValid,
-                        supportingText = if (linkValid) null else {
-                            { Text("Nur http(s)-Links") }
-                        },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
 
-                    Text("Ort", style = MaterialTheme.typography.labelLarge)
+                    SectionLabel("Ort")
                     if (places.isEmpty()) {
-                        Text(
-                            "Noch keine Orte angelegt.",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                        Hint("Noch keine Orte angelegt.")
                         Button(onClick = { newPlace = true }) { Text("Ort anlegen") }
                     } else {
                         Box {
@@ -358,7 +355,7 @@ fun PlaceReminderDialog(
                         )
                     }
 
-                    Text("Zeitfenster", style = MaterialTheme.typography.labelLarge)
+                    SectionLabel("Zeitfenster")
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         FilterChip(selected = !windowOn, onClick = { windowOn = false }, label = { Text("Immer") })
                         FilterChip(selected = windowOn, onClick = { windowOn = true }, label = { Text("Nur von–bis") })
@@ -382,11 +379,7 @@ fun PlaceReminderDialog(
                                 ).show()
                             }) { Text(timeLabel(windowEnd)) }
                         }
-                        Text(
-                            "Außerhalb des Fensters wird nicht geprüft und nicht erinnert.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                        Hint("Außerhalb des Fensters wird nicht geprüft und nicht erinnert.")
                     }
                     OutlinedTextField(
                         value = interval,
@@ -398,7 +391,7 @@ fun PlaceReminderDialog(
                         modifier = Modifier.fillMaxWidth(),
                     )
 
-                    Text("Nagging", style = MaterialTheme.typography.labelLarge)
+                    SectionLabel("Erinnern")
                     OutlinedTextField(
                         value = nag,
                         onValueChange = { nag = it.filter(Char::isDigit).take(4) },
@@ -407,12 +400,17 @@ fun PlaceReminderDialog(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                     )
+                    // Link ganz am Ende wie im Zeit-Editor.
                     OutlinedTextField(
-                        value = maxNags,
-                        onValueChange = { maxNags = it.filter(Char::isDigit).take(3) },
-                        label = { Text("Max. Wiederholungen (0 = unbegrenzt)") },
-                        keyboardOptions = number,
+                        value = link,
+                        onValueChange = { link = it },
+                        label = { Text("Link (optional)") },
                         singleLine = true,
+                        isError = !linkValid,
+                        supportingText = if (linkValid) null else {
+                            { Text("Nur http(s)-Links") }
+                        },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
@@ -473,7 +471,9 @@ fun PlacesScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item {
-                Button(onClick = { prefill = null; creating = true }) { Text("Ort hinzufügen") }
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Button(onClick = { prefill = null; creating = true }) { Text("Ort hinzufügen") }
+                }
             }
             if (places.isEmpty()) {
                 item {
@@ -483,6 +483,8 @@ fun PlacesScreen(
                             "oder Plus Code antippen (kopiert) und hier einfügen. Teilen aus einer " +
                             "Karten-App („Als Ort in Quälgeist“) geht auch.",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth(),
                     )
                 }
             }
@@ -662,6 +664,7 @@ private fun PlaceDialog(
                         .padding(horizontal = 24.dp)
                         .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     OutlinedTextField(
                         value = name,
@@ -710,12 +713,10 @@ private fun PlaceDialog(
                         modifier = Modifier.fillMaxWidth(),
                     )
 
-                    Text("WLANs (optional)", style = MaterialTheme.typography.labelLarge)
-                    Text(
+                    SectionLabel("WLANs (optional)")
+                    Hint(
                         "Verbunden mit einem davon gilt als „da“; ein Wechsel zwischen ihnen löst " +
                             "nichts aus. Hilft vor allem beim Verlassen.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     ssids.forEach { s ->
                         InputChip(

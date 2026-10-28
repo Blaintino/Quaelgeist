@@ -63,10 +63,13 @@ Cloud-Sessions haben weder Emulator noch Handy.
 - Benachrichtigung hat nur *Erledigt* und *Verschieben…* (mit Link zusätzlich *Link öffnen*); Verschieben öffnet `NagActivity`
   (Wunsch des Nutzers). Standard-Nag-Intervall 10 Minuten. *Erledigt* mit
   `setAuthenticationRequired(true)`: auf dem Sperrbildschirm erst nach dem Entsperren.
-- `NagActivity`: Verschieben um 10/30 Min, 1/3 Std, Morgen, Montag (`QuickTimes.nextMonday`,
-  Uhrzeit aus `baseAt`, heute Montag → in einer Woche), Uhrzeit…, Anderer Tag… (Datum, dann
-  Uhrzeit; alles reines Snooze über `Actions.snoozeUntil`). „In der App bearbeiten“ startet
-  `MainActivity` mit `EXTRA_EDIT_ID` (`editRequest`) und öffnet den Editor.
+- `NagActivity` (Wunsch des Nutzers, aufgeräumt 2026-10-27): ✕ oben links schließt; Verschieben
+  um 10 Min / 1 Std, `QuickTimes.PRESETS` 9:30 / 17:00 (heute oder morgen, kleine Zeile
+  „Heute“/„Morgen“), Morgen / Montag mit kleiner Zeile „gleiche Uhrzeit“
+  (`QuickTimes.nextMonday`, Uhrzeit aus `baseAt`, heute Montag → in einer Woche), alles reines
+  Snooze über `Actions.snoozeUntil`. Für alles Genauere „Im Editor bearbeiten“: startet
+  `MainActivity` mit `EXTRA_EDIT_ID` (`editRequest`). Kein „Uhrzeit…“/„Anderer Tag…“ mehr.
+  `SnoozeButton` ist auch der Zeitknopf der Schnelleingabe.
 - `NagActivity` mit mehreren offenen Erinnerungen (Wunsch des Nutzers, Probephase – eine der
   beiden Varianten fällt evtl. wieder weg, daher getrennt schaltbar): `AUTO_ADVANCE` (nach
   Erledigt/Verschieben die nächste offene zeigen statt schließen, Hinweis „Danach noch n
@@ -84,11 +87,14 @@ Cloud-Sessions haben weder Emulator noch Handy.
   Termin (`baseAt`).
 - Editor (`EditDialog`) ist ein `Dialog` mit Kopfzeile ✕ / Überschrift / *Speichern*, damit die
   Tastatur Speichern nicht verdeckt; Eingabetaste im Titelfeld speichert. Schnellwahl-Chips
-  `QuickTimes.PRESETS` (9:30, 17:00); dieselben Uhrzeiten als Knöpfe im Widget-Dialog
-  („Heute …“/„Morgen …“, je nachdem ob schon vorbei).
+  `QuickTimes.PRESETS` (9:30, 17:00) vor Datum/Uhrzeit. Gestaltung (Wunsch des Nutzers, in
+  allen Editoren gleich): Bedienelemente zentriert, Unterüberschriften (`SectionLabel`) und
+  Eingabefelder links, Hinweise (`Hint`) zentriert; Abschnitt „Erinnern“ (nicht „Nagging“)
+  nur mit dem Intervall – „Max. Wiederholungen“ gibt es im Editor nicht mehr, ein alter
+  `maxNags` bleibt beim Speichern erhalten; Link-Feld ganz am Ende. Karten-Schnellaktionen
+  (`CardActions`) auch auf ausgelösten Orts-Karten.
 - Uhrzeit-Regel (Wunsch des Nutzers): Wird im Editor Datum oder Uhrzeit gewählt (auch per
-  Chip) oder beim Verschieben „Anderer Tag…“ genutzt und liegt der Zeitpunkt nicht in der
-  Zukunft, gilt der nächste Tag zu dieser Uhrzeit (`QuickTimes.onDayOrNext`). Unangetastete
+  Chip) und liegt der Zeitpunkt nicht in der Zukunft, gilt der nächste Tag zu dieser Uhrzeit (`QuickTimes.onDayOrNext`). Unangetastete
   Termine beim Bearbeiten werden nicht verschoben.
 - Links (`Links.kt`, Tests `LinksTest`): optionales Feld `Reminder.link`, nur http(s)
   (Wunsch des Nutzers). Beim Speichern (Editor und Schnelleingabe) wandert ein Link aus dem
@@ -164,8 +170,9 @@ Cloud-Sessions haben weder Emulator noch Handy.
   (`done = false`, neuer Termin als `baseAt`/`fireAt`/`anchorAt`).
 - Schnelleingabe (`QuickAdd.kt`): Widget mit klassischen `RemoteViews` (bewusst kein Glance,
   keine neue Abhängigkeit), Klick öffnet `QuickAddActivity` (durchsichtiges Theme
-  `Theme.Quaelgeist.Translucent`, nur ein Dialog). Zeitknöpfe speichern sofort mit
-  Standardwerten; „Mehr Optionen“ startet `MainActivity` mit `EXTRA_NEW_TITLE`
+  `Theme.Quaelgeist.Translucent`, nur ein Dialog, aufgebaut wie die Editoren mit ✕ oben).
+  Zeitknöpfe wie im Verschieben-Bildschirm (10 Min, 1 Std, 9:30, 17:00) speichern sofort mit
+  Standardwerten; „Im Editor öffnen“ startet `MainActivity` mit `EXTRA_NEW_TITLE`
   (`singleTop`, `newTitleRequest`), die den Editor vorbefüllt öffnet. Zeitberechnung in
   `QuickTimes` (reine Funktionen, `QuickTimesTest`).
 

@@ -68,6 +68,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -371,8 +372,9 @@ fun App() {
                         } else {
                             "Keine offenen Aufgaben. Tippe auf + oder nutze das Widget."
                         },
-                        modifier = Modifier.padding(16.dp),
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
                     )
                 }
                 LazyColumn(
@@ -400,8 +402,9 @@ fun App() {
                 if (archive.isEmpty()) {
                     Text(
                         "Hier landen erledigte einmalige Erinnerungen.",
-                        modifier = Modifier.padding(16.dp),
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
                     )
                 }
                 LazyColumn(
@@ -410,8 +413,10 @@ fun App() {
                 ) {
                     if (archive.isNotEmpty()) {
                         item {
-                            OutlinedButton(onClick = { confirmClear = true }) {
-                                Text("Archiv leeren")
+                            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                OutlinedButton(onClick = { confirmClear = true }) {
+                                    Text("Archiv leeren")
+                                }
                             }
                         }
                     }
@@ -548,6 +553,36 @@ private fun ArchiveCard(r: Reminder, onReopen: () -> Unit) {
     }
 }
 
+/** Schnellaktionen unter einer Karte; auch für ausgelöste Orts-Erinnerungen (Tab „Orte“). */
+@Composable
+internal fun CardActions(r: Reminder) {
+    val ctx = LocalContext.current
+    Row(Modifier.fillMaxWidth()) {
+        QuickButton("Erledigt", Modifier.weight(1f)) { Actions.markDone(ctx, r.id) }
+        QuickButton("+10 Min", Modifier.weight(1f)) { Actions.snooze(ctx, r.id, 10) }
+        QuickButton("+1 Std", Modifier.weight(1f)) { Actions.snooze(ctx, r.id, 60) }
+        QuickButton("Morgen", Modifier.weight(1f)) { Actions.snoozeTomorrow(ctx, r.id) }
+    }
+}
+
+/** Unterüberschrift in Editoren: bleibt links, auch wenn die Spalte zentriert. */
+@Composable
+internal fun SectionLabel(text: String) {
+    Text(text, style = MaterialTheme.typography.labelLarge, modifier = Modifier.fillMaxWidth())
+}
+
+/** Kleiner Hinweistext, zentriert. */
+@Composable
+internal fun Hint(text: String) {
+    Text(
+        text,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
+        modifier = Modifier.fillMaxWidth(),
+    )
+}
+
 @Composable
 private fun ReminderCard(r: Reminder, now: Long, onEdit: () -> Unit) {
     val ctx = LocalContext.current
@@ -581,12 +616,7 @@ private fun ReminderCard(r: Reminder, now: Long, onEdit: () -> Unit) {
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Row(Modifier.fillMaxWidth()) {
-                    QuickButton("Erledigt", Modifier.weight(1f)) { Actions.markDone(ctx, r.id) }
-                    QuickButton("+10 Min", Modifier.weight(1f)) { Actions.snooze(ctx, r.id, 10) }
-                    QuickButton("+1 Std", Modifier.weight(1f)) { Actions.snooze(ctx, r.id, 60) }
-                    QuickButton("Morgen", Modifier.weight(1f)) { Actions.snoozeTomorrow(ctx, r.id) }
-                }
+                CardActions(r)
             }
         }
     }
@@ -626,7 +656,6 @@ private fun EditDialog(
     var every by remember { mutableStateOf((initial?.repeatEvery ?: 1).toString()) }
     var mask by remember { mutableStateOf(initial?.weekdayMask ?: 0) }
     var nag by remember { mutableStateOf((initial?.nagIntervalMin ?: 10).toString()) }
-    var maxNags by remember { mutableStateOf((initial?.maxNags ?: 0).toString()) }
     var menu by remember { mutableStateOf(false) }
     var weekendMode by remember { mutableStateOf(initial?.weekendMode ?: WeekendMode.NORMAL) }
     var weekendMin by remember {
@@ -661,7 +690,7 @@ private fun EditDialog(
                 repeatEvery = (every.toIntOrNull() ?: 1).coerceAtLeast(1),
                 weekdayMask = if (type == RepeatType.WEEKLY) mask else 0,
                 nagIntervalMin = nag.toIntOrNull() ?: 0,
-                maxNags = maxNags.toIntOrNull() ?: 0,
+                maxNags = initial?.maxNags ?: 0,
                 weekendMode = when {
                     !weekendPossible -> WeekendMode.NORMAL
                     weekendMode == WeekendMode.SKIP && !skipPossible -> WeekendMode.NORMAL
@@ -695,11 +724,13 @@ private fun EditDialog(
                         Text("Speichern")
                     }
                 }
+                // Bedienelemente zentriert, Unterüberschriften (SectionLabel) und Felder links.
                 Column(
                     Modifier
                         .padding(horizontal = 24.dp)
                         .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     OutlinedTextField(
                         value = title,
@@ -711,24 +742,20 @@ private fun EditDialog(
                         keyboardActions = KeyboardActions(onDone = { save() }),
                         modifier = Modifier.fillMaxWidth(),
                     )
-                    // Ausgefüllt: Die Meldung bekommt „Link öffnen" (öffnet und hakt ab).
-                    OutlinedTextField(
-                        value = link,
-                        onValueChange = { link = it },
-                        label = { Text("Link (optional)") },
-                        placeholder = { Text("https://…") },
-                        singleLine = true,
-                        isError = !linkValid,
-                        supportingText = if (linkValid) null else {
-                            { Text("Nur http(s)-Links") }
-                        },
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Uri,
-                            imeAction = ImeAction.Done,
-                        ),
-                        keyboardActions = KeyboardActions(onDone = { save() }),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
+                    // Feste Uhrzeiten zuerst (Wunsch des Nutzers), darunter Datum und Uhrzeit genau.
+                    // Eine schon vergangene Uhrzeit rückt auf den nächsten Tag.
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        QuickTimes.PRESETS.forEach { preset ->
+                            FilterChip(
+                                selected = dt.toLocalTime() == preset,
+                                onClick = { at = futureAt(dt.toLocalDate(), preset) },
+                                label = {
+                                    Text(preset.format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)))
+                                },
+                            )
+                        }
+                    }
+
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(onClick = {
                             DatePickerDialog(
@@ -753,21 +780,8 @@ private fun EditDialog(
                             Text(dt.format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)))
                         }
                     }
-                    // Feste Uhrzeiten; wie bei der Auswahl oben rückt eine schon vergangene
-                    // Uhrzeit auf den nächsten Tag.
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        QuickTimes.PRESETS.forEach { preset ->
-                            FilterChip(
-                                selected = dt.toLocalTime() == preset,
-                                onClick = { at = futureAt(dt.toLocalDate(), preset) },
-                                label = {
-                                    Text(preset.format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)))
-                                },
-                            )
-                        }
-                    }
 
-                    Text("Wiederholung", style = MaterialTheme.typography.labelLarge)
+                    SectionLabel("Wiederholung")
                     Box {
                         // „Werktags" ist eine Voreinstellung für wöchentlich Mo–Fr, kein eigener Typ.
                         val workdays = type == RepeatType.WEEKLY && every == "1" &&
@@ -811,14 +825,10 @@ private fun EditDialog(
                                 DayToggle(name, (mask and (1 shl i)) != 0) { mask = mask xor (1 shl i) }
                             }
                         }
-                        Text(
-                            "Ohne Auswahl gilt der Wochentag des Termins.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                        Hint("Ohne Auswahl gilt der Wochentag des Termins.")
                     }
                     if (weekendPossible) {
-                        Text("Am Wochenende", style = MaterialTheme.typography.labelLarge)
+                        SectionLabel("Am Wochenende")
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier.horizontalScroll(rememberScrollState()),
@@ -845,15 +855,11 @@ private fun EditDialog(
                             }) { Text("Sa/So um ${minutesLabel(weekendMin)}") }
                         }
                         if (type == RepeatType.WEEKLY) {
-                            Text(
-                                "Zum Aussetzen Sa/So oben abwählen.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+                            Hint("Zum Aussetzen Sa/So oben abwählen.")
                         }
                     }
 
-                    Text("Nagging", style = MaterialTheme.typography.labelLarge)
+                    SectionLabel("Erinnern")
                     OutlinedTextField(
                         value = nag,
                         onValueChange = { nag = it.filter(Char::isDigit).take(4) },
@@ -862,12 +868,24 @@ private fun EditDialog(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                     )
+                    // Ganz am Ende (Wunsch des Nutzers). Max. Wiederholungen gibt es im Editor
+                    // nicht mehr; ein alter Wert bleibt beim Bearbeiten erhalten.
+                    // Ausgefüllt: Die Meldung bekommt „Link öffnen" (öffnet und hakt ab).
                     OutlinedTextField(
-                        value = maxNags,
-                        onValueChange = { maxNags = it.filter(Char::isDigit).take(3) },
-                        label = { Text("Max. Wiederholungen (0 = unbegrenzt)") },
-                        keyboardOptions = number,
+                        value = link,
+                        onValueChange = { link = it },
+                        label = { Text("Link (optional)") },
+                        placeholder = { Text("https://…") },
                         singleLine = true,
+                        isError = !linkValid,
+                        supportingText = if (linkValid) null else {
+                            { Text("Nur http(s)-Links") }
+                        },
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Uri,
+                            imeAction = ImeAction.Done,
+                        ),
+                        keyboardActions = KeyboardActions(onDone = { save() }),
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
