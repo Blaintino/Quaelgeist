@@ -160,9 +160,20 @@ Cloud-Sessions haben weder Emulator noch Handy.
   Editor: „Aussetzen“ nur bei täglich (wöchentlich: Sa/So abwählen), Abschnitt nur, wenn die
   Regel Sa/So trifft; am Wochenende zeigt der Editor die normale Uhrzeit (`editorStart`).
   Verschieben auf Morgen/Montag nimmt `Recurrence.timeOn` des Zieltags. Nags unverändert.
+- Einstellungen (`Settings.kt`, Tests `SettingsTest`; Wunsch des Nutzers: Werte ändern ohne neue
+  Version). Zahnrad → `SettingsScreen`, oben Eintrag „Zuverlässigkeit“ (Prüfliste; roter
+  Hinweis auf der Hauptseite führt weiter direkt dorthin). `AppSettings` als JSON in
+  SharedPreferences `settings` (`commit()`), Vorgaben = frühere feste Werte. Einstellbar: feste
+  Uhrzeiten (2–4, `SettingsRules.normalizePresets`; überall statt `QuickTimes.PRESETS`, je zwei
+  pro Reihe), zwei Verschieben-Dauern (Verschieben-Bildschirm, Schnelleingabe, Karten
+  `CardActions`), Vorgaben für neue Erinnerungen (Erinnern-Intervall, Wochenend-Uhrzeit,
+  Orte: Radius, Prüfintervall, Zeitfenster), `autoAdvance`/`showOthers` (vorher Konstanten in
+  `NagActivity`), Start-Tab. Gelten nur für neu angelegte Erinnerungen. Bewusst nicht
+  einstellbar: alles, was die Zuverlässigkeit trägt (Alarmart, Vibration, Kanal, Meldung).
+  In Compose über `rememberSettings()` (lädt bei `Settings.version` neu).
 - `BootReceiver` plant nach Neustart, App-Update und Zeitänderung alle Alarme neu.
 - Tabs in `App()`: `TAB_RECURRING` (offen, `repeatType != NONE`), `TAB_ONCE` (offen,
-  einmalig), `TAB_ARCHIVE` (`done`). Start-Tab beim Öffnen ist `TAB_ONCE` (Wunsch des Nutzers). `save()` wechselt in den Tab der gespeicherten
+  einmalig), `TAB_ARCHIVE` (`done`). Start-Tab beim Öffnen aus den Einstellungen (Vorgabe `TAB_ONCE`, Wunsch des Nutzers); dazu `TAB_PLACES`. `save()` wechselt in den Tab der gespeicherten
   Erinnerung; + im Tab „Wiederkehrend“ startet den Editor mit `prefillType = DAILY`.
 - Archiv: erledigt = `done` (nur einmalige; Serien rücken beim Abhaken vor). `doneAt` wird in
   `Actions.markDone` gesetzt, alte Einträge haben 0 und werden im Archiv nach `baseAt`

@@ -204,12 +204,14 @@ fun App() {
         )
     }
     var now by remember { mutableStateOf(System.currentTimeMillis()) }
-    var tab by rememberSaveable { mutableIntStateOf(TAB_ONCE) } // Start-Tab: Einmalig
+    // Start-Tab aus den Einstellungen (Vorgabe: Einmalig).
+    var tab by rememberSaveable { mutableIntStateOf(startTabIndex(Settings.get(ctx).startTab)) }
     var editing by remember { mutableStateOf<Reminder?>(null) }
     var reopening by remember { mutableStateOf<Reminder?>(null) }
     var creatingTitle by remember { mutableStateOf<String?>(null) } // null = kein Dialog
     var confirmClear by remember { mutableStateOf(false) }
     var showReliability by remember { mutableStateOf(false) }
+    var showSettings by remember { mutableStateOf(false) }
     var creatingPlaceReminder by remember { mutableStateOf(false) }
     var showPlaces by remember { mutableStateOf(false) }
     var sharedPlace by remember { mutableStateOf<String?>(null) }
@@ -278,6 +280,19 @@ fun App() {
         tab = tabOf(r)
     }
 
+    if (showSettings) {
+        BackHandler { showSettings = false }
+        Scaffold { padding ->
+            SettingsScreen(
+                reliable = reliable,
+                onReliability = { showReliability = true },
+                onBack = { showSettings = false },
+                contentPadding = padding,
+            )
+        }
+        return
+    }
+
     if (showPlaces) {
         BackHandler { showPlaces = false }
         Scaffold { padding ->
@@ -320,8 +335,8 @@ fun App() {
                     style = MaterialTheme.typography.headlineMedium,
                     modifier = Modifier.weight(1f),
                 )
-                IconButton(onClick = { showReliability = true }) {
-                    Icon(Icons.Default.Settings, contentDescription = "Zuverlässigkeit")
+                IconButton(onClick = { showSettings = true }) {
+                    Icon(Icons.Default.Settings, contentDescription = "Einstellungen")
                 }
             }
             if (!reliable) {
@@ -502,6 +517,12 @@ private const val TAB_ONCE = 1
 private const val TAB_PLACES = 2
 private const val TAB_ARCHIVE = 3
 
+private fun startTabIndex(t: StartTab) = when (t) {
+    StartTab.RECURRING -> TAB_RECURRING
+    StartTab.ONCE -> TAB_ONCE
+    StartTab.PLACES -> TAB_PLACES
+}
+
 private fun tabOf(r: Reminder) = when {
     r.isPlace -> TAB_PLACES
     r.repeatType == RepeatType.NONE -> TAB_ONCE
@@ -559,8 +580,12 @@ internal fun CardActions(r: Reminder) {
     val ctx = LocalContext.current
     Row(Modifier.fillMaxWidth()) {
         QuickButton("Erledigt", Modifier.weight(1f)) { Actions.markDone(ctx, r.id) }
-        QuickButton("+10 Min", Modifier.weight(1f)) { Actions.snooze(ctx, r.id, 10) }
-        QuickButton("+1 Std", Modifier.weight(1f)) { Actions.snooze(ctx, r.id, 60) }
+        // Dauern aus den Einstellungen (Vorgabe 10 Min / 1 Std).
+        rememberSettings().snoozeMinutes.forEach { m ->
+            QuickButton("+" + SettingsRules.durationLabel(m), Modifier.weight(1f)) {
+                Actions.snooze(ctx, r.id, m)
+            }
+        }
         QuickButton("Morgen", Modifier.weight(1f)) { Actions.snoozeTomorrow(ctx, r.id) }
     }
 }
@@ -655,11 +680,12 @@ private fun EditDialog(
     var type by remember { mutableStateOf(initial?.repeatType ?: prefillType) }
     var every by remember { mutableStateOf((initial?.repeatEvery ?: 1).toString()) }
     var mask by remember { mutableStateOf(initial?.weekdayMask ?: 0) }
-    var nag by remember { mutableStateOf((initial?.nagIntervalMin ?: 10).toString()) }
+    val settings = rememberSettings()
+    var nag by remember { mutableStateOf((initial?.nagIntervalMin ?: settings.nagIntervalMin).toString()) }
     var menu by remember { mutableStateOf(false) }
     var weekendMode by remember { mutableStateOf(initial?.weekendMode ?: WeekendMode.NORMAL) }
     var weekendMin by remember {
-        mutableIntStateOf(initial?.weekendTimeMin ?: Reminder.DEFAULT_WEEKEND_TIME_MIN)
+        mutableIntStateOf(initial?.weekendTimeMin ?: settings.weekendTimeMin)
     }
 
     val dt = Instant.ofEpochMilli(at).atZone(zone)
@@ -745,7 +771,7 @@ private fun EditDialog(
                     // Feste Uhrzeiten zuerst (Wunsch des Nutzers), darunter Datum und Uhrzeit genau.
                     // Eine schon vergangene Uhrzeit rückt auf den nächsten Tag.
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        QuickTimes.PRESETS.forEach { preset ->
+                        settings.presets.forEach { preset ->
                             FilterChip(
                                 selected = dt.toLocalTime() == preset,
                                 onClick = { at = futureAt(dt.toLocalDate(), preset) },

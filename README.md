@@ -72,6 +72,12 @@ Google-Dienste, kein Netzwerk und keine Konten.
   *17:00* (jeweils heute, falls noch nicht vorbei, sonst morgen – die Beschriftung zeigt es) –
   gespeichert mit 10-Minuten-Erinnern, ohne Wiederholung. *Im Editor öffnen* öffnet den
   vollen Editor mit dem getippten Titel.
+- **Einstellungen** (Zahnrad oben rechts): oben *Zuverlässigkeit* (Prüfliste und Test), dann
+  feste Uhrzeiten (2–4, Vorgabe 9:30 und 17:00), die beiden Verschieben-Dauern (Vorgabe 10 Min
+  und 1 Std, auch auf den Karten und in der Schnelleingabe), Vorgaben für neue Erinnerungen
+  (Erinnern-Intervall, Wochenend-Uhrzeit, Radius/Prüfintervall/Zeitfenster für Orte), die
+  beiden Hilfen des Verschieben-Bildschirms und der Start-Tab; *Auf Standard zurücksetzen*.
+  Änderungen gelten für neue Erinnerungen, bestehende bleiben, wie sie sind.
 - **Smartwatch / Fitnessband**: Die Meldung ist so gebaut, dass Begleit-Apps wie Huawei
   Health sie weiterleiten (nicht „laufend“, jede Wiederholung als neue Meldung). Eine eigene
   Uhr-App gibt es nicht.
@@ -166,6 +172,7 @@ Quälgeist für das Band einschalten.
 | `Receivers.kt` | Alarm, Schaltflächen, Neustart |
 | `Ui.kt`, `MainActivity.kt` | Oberfläche (Jetpack Compose): Tabs *Offen* / *Archiv*, Editor |
 | `QuickAdd.kt` | Homescreen-Widget und Schnelleingabe-Fenster |
+| `Settings.kt` | Einstellungen: Speicher, Regeln (Tests: `SettingsTest.kt`), Bildschirm |
 | `QuickTimes.kt` | Zeitvorschläge der Schnelleingabe (Tests: `QuickTimesTest.kt`) |
 
 ## Bekannte Einschränkungen
