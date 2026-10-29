@@ -155,7 +155,15 @@ private fun NagScreen(id: Long, onClose: () -> Unit, onSwitch: (Long) -> Unit) {
             Button(
                 onClick = { act { Actions.markDone(ctx, r.id, r.baseAt) } },
                 modifier = Modifier.fillMaxWidth().height(64.dp),
-            ) { Text("Erledigt", style = MaterialTheme.typography.titleLarge) }
+            ) {
+                // Serie: klein darunter, dass sie sich wiederholt (Erledigt springt zum nächsten Termin).
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Erledigt", style = MaterialTheme.typography.titleLarge)
+                    if (r.repeatType != RepeatType.NONE) {
+                        Text("wiederholt ${ruleLabel(r)}", style = MaterialTheme.typography.labelMedium)
+                    }
+                }
+            }
 
             if (r.isPlace) {
                 // Wieder auf den Ort warten (erst weg- bzw. wieder hinkommen, siehe GeoLogic).
