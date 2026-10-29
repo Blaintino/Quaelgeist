@@ -3,7 +3,9 @@ package de.quaelgeist
 import android.Manifest
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.text.format.DateFormat
 import androidx.activity.compose.BackHandler
@@ -280,6 +282,21 @@ fun App() {
         tab = tabOf(r)
     }
 
+    // Tippen auf eine Karte (Wunsch des Nutzers): Überfällige – fällig, nervt gerade oder Ort
+    // ausgelöst – öffnen den Verschieben-Bildschirm, alle anderen den Editor. Von dort führt
+    // „Im Editor bearbeiten“ weiterhin in den Editor.
+    fun open(r: Reminder) {
+        if (!r.placeArmed && DueGroups.isOverdue(r, System.currentTimeMillis())) {
+            ctx.startActivity(
+                Intent(ctx, NagActivity::class.java)
+                    .setData(Uri.parse("quaelgeist://nag/${r.id}"))
+                    .putExtra(Scheduler.EXTRA_ID, r.id),
+            )
+        } else {
+            editing = r
+        }
+    }
+
     if (showSettings) {
         BackHandler { showSettings = false }
         Scaffold { padding ->
@@ -374,7 +391,7 @@ fun App() {
             if (tab == TAB_PLACES) {
                 PlacesTab(
                     placeReminders,
-                    onEdit = { editing = it },
+                    onEdit = ::open,
                     onManagePlaces = { showPlaces = true },
                 )
             } else if (tab != TAB_ARCHIVE) {
@@ -409,7 +426,7 @@ fun App() {
                             )
                         }
                         items(reminders, key = { it.id }) { r ->
-                            ReminderCard(r, now, onEdit = { editing = r })
+                            ReminderCard(r, now, onEdit = { open(r) })
                         }
                     }
                 }

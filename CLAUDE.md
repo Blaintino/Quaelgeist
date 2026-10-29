@@ -83,6 +83,9 @@ Cloud-Sessions haben weder Emulator noch Handy.
   Sonntag) / Ab nächster Woche, leere entfallen (Wunsch des Nutzers). Überfällig =
   `fireAt <= jetzt || nagCount > 0` (nervt gerade; Snooze setzt `nagCount` zurück), dieselbe
   Regel färbt die Karte rot.
+- Tippen auf eine Karte (`App.open`): überfällige (`DueGroups.isOverdue`, nicht auf den Ort
+  wartend; auch ausgelöste Orts-Karten) öffnen `NagActivity` (Wunsch des Nutzers), alle
+  anderen den Editor.
 - Karten in der Übersicht zeigen nur `fireAt` (nächste Meldung) ohne Beschriftung, kein
   „Fällig:“ mehr (Wunsch des Nutzers). Benachrichtigung und `NagActivity` zeigen weiter den
   Termin (`baseAt`).
