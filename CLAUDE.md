@@ -69,7 +69,8 @@ Cloud-Sessions haben weder Emulator noch Handy.
   (`QuickTimes.nextMonday`, Uhrzeit aus `baseAt`, heute Montag → in einer Woche), alles reines
   Snooze über `Actions.snoozeUntil`. Für alles Genauere „Im Editor bearbeiten“: startet
   `MainActivity` mit `EXTRA_EDIT_ID` (`editRequest`). Kein „Uhrzeit…“/„Anderer Tag…“ mehr.
-  `SnoozeButton` ist auch der Zeitknopf der Schnelleingabe.
+  `SnoozeButton` ist auch der Zeitknopf der Schnelleingabe. Bei Serien steht im *Erledigt*-Knopf
+  klein „wiederholt …“ (`ruleLabel`, ohne Wochenend-Zusatz; Wunsch des Nutzers, Variante C).
 - `NagActivity` mit mehreren offenen Erinnerungen (Wunsch des Nutzers, Probephase – eine der
   beiden Varianten fällt evtl. wieder weg, daher getrennt schaltbar): `AUTO_ADVANCE` (nach
   Erledigt/Verschieben die nächste offene zeigen statt schließen, Hinweis „Danach noch n

@@ -156,7 +156,7 @@ private fun minutesLabel(min: Int): String =
 /** Bits für Samstag und Sonntag in [Reminder.weekdayMask]. */
 private const val WEEKEND_BITS = 0b1100000
 
-private fun ruleLabel(r: Reminder): String {
+internal fun ruleLabel(r: Reminder): String {
     val n = r.repeatEvery
     return when (r.repeatType) {
         RepeatType.NONE -> ""
