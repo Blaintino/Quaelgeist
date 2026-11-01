@@ -77,6 +77,8 @@ Cloud-Sessions haben weder Emulator noch Handy.
   offen“) und `SHOW_OTHERS` (Liste `OtherOpen` unten, Tippen wechselt). Offen =
   `OpenReminders.others` (= `DueGroups.isOverdue`, ohne die aktuelle und ohne auf den Ort
   wartende Orts-Erinnerungen, älteste zuerst).
+  Beim Wechsel gleitet die neue Erinnerung kurz von rechts herein (`AnimatedContent`, 250 ms;
+  nur die angezeigte schließt den Bildschirm, `active`).
   Direkt in die Mitteilungszentrale springen geht nicht (keine öffentliche API).
 - Übersicht (Tabs Wiederkehrend und Einmalig) in Abschnitte nach `fireAt` geteilt
   (`DueGroups.kt`, Tests `DueGroupsTest`): Überfällig / Heute / Morgen / Diese Woche (bis
