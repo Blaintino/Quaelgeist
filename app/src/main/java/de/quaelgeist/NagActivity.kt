@@ -5,6 +5,12 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -61,11 +67,23 @@ class NagActivity : ComponentActivity() {
         reminderId.longValue = intent.getLongExtra(Scheduler.EXTRA_ID, -1)
         setContent {
             NagTheme {
-                NagScreen(
-                    reminderId.longValue,
-                    onClose = ::finish,
-                    onSwitch = { reminderId.longValue = it },
-                )
+                // Kurzer Übergang beim Wechsel zur nächsten Erinnerung (Wunsch des Nutzers: sehen,
+                // dass eine neue geöffnet wurde): die neue gleitet von rechts herein.
+                AnimatedContent(
+                    targetState = reminderId.longValue,
+                    transitionSpec = {
+                        (slideInHorizontally(tween(250)) { it / 3 } + fadeIn(tween(250)))
+                            .togetherWith(fadeOut(tween(120)))
+                    },
+                    label = "nag",
+                ) { id ->
+                    NagScreen(
+                        id,
+                        active = id == reminderId.longValue,
+                        onClose = ::finish,
+                        onSwitch = { reminderId.longValue = it },
+                    )
+                }
             }
         }
     }
@@ -88,7 +106,7 @@ private fun othersNow(ctx: Context, currentId: Long): List<Reminder> =
     OpenReminders.others(ReminderStore(ctx).all(), currentId, System.currentTimeMillis())
 
 @Composable
-private fun NagScreen(id: Long, onClose: () -> Unit, onSwitch: (Long) -> Unit) {
+private fun NagScreen(id: Long, active: Boolean, onClose: () -> Unit, onSwitch: (Long) -> Unit) {
     val ctx = LocalContext.current
     val settings = rememberSettings()
     val version by ReminderStore.version.collectAsState()
@@ -98,7 +116,8 @@ private fun NagScreen(id: Long, onClose: () -> Unit, onSwitch: (Long) -> Unit) {
     val openedFor = remember(id) { r?.baseAt }
 
     if (r == null || r.done || r.baseAt != openedFor) {
-        LaunchedEffect(id, version) { onClose() }
+        // Nur die angezeigte schließt; die gerade erledigte blendet beim Wechsel nur aus.
+        if (active) LaunchedEffect(id, version) { onClose() }
         return
     }
 
