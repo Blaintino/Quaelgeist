@@ -65,14 +65,21 @@
             android:taskAffinity="${applicationId}.nag" />
 
         <!-- Schnelleingabe aus dem Homescreen-Widget. -->
+        <!-- Freigegeben über eine eigene Aktion, damit das Widget der Kalender-App Chip die
+             Schnelleingabe öffnen kann. Sie liest keine Extras und speichert nur nach Eingabe. -->
         <activity
             android:name=".QuickAddActivity"
             android:excludeFromRecents="true"
-            android:exported="false"
+            android:exported="true"
             android:noHistory="true"
             android:taskAffinity="${applicationId}.quickadd"
             android:theme="@style/Theme.Quaelgeist.Translucent"
-            android:windowSoftInputMode="stateAlwaysVisible|adjustResize" />
+            android:windowSoftInputMode="stateAlwaysVisible|adjustResize">
+            <intent-filter>
+                <action android:name="de.quaelgeist.action.QUICK_ADD" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
 
         <!-- Knopf „Link öffnen" der Benachrichtigung: öffnet den Link, hakt ab, ohne Oberfläche. -->
         <activity
