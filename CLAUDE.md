@@ -192,6 +192,9 @@ Cloud-Sessions haben weder Emulator noch Handy.
   Standardwerten; „Im Editor öffnen“ startet `MainActivity` mit `EXTRA_NEW_TITLE`
   (`singleTop`, `newTitleRequest`), die den Editor vorbefüllt öffnet. Zeitberechnung in
   `QuickTimes` (reine Funktionen, `QuickTimesTest`).
+  `QuickAddActivity` ist über die Aktion `de.quaelgeist.action.QUICK_ADD` exportiert (Wunsch des
+  Nutzers: Knopf „+ Quälgeist“ im Widget der Kalender-App Chip, Repo `Blaintino/Chip`). Sie darf
+  deshalb keine Extras auswerten und nichts ohne Eingabe speichern.
 
 ## Rahmenbedingungen
 
