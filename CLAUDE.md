@@ -195,6 +195,19 @@ Cloud-Sessions haben weder Emulator noch Handy.
   `QuickAddActivity` ist über die Aktion `de.quaelgeist.action.QUICK_ADD` exportiert (Wunsch des
   Nutzers: Knopf „+ Quälgeist“ im Widget der Kalender-App Chip, Repo `Blaintino/Chip`). Sie darf
   deshalb keine Extras auswerten und nichts ohne Eingabe speichern.
+- Schnittstelle zur Listen-App „Denk dran“ (`Interop.kt`, Spezifikation im Repo
+  `Blaintino/ddbd`, `docs/spezifikation.md` Abschnitt 12): `CreateReminderReceiver` legt per
+  `de.quaelgeist.action.CREATE_REMINDER` eine einmalige Erinnerung ohne Oberfläche an und meldet per
+  `REMINDER_STATUS` explizit an `SOURCE_PACKAGE` zurück (`accepted`, `done`, `dismissed`,
+  `rejected`). Geschützt durch die Signatur-Berechtigung `de.blaintino.permission.INTERNAL`, die
+  jede beteiligte App selbst festlegt. Dabei gilt:
+  - `AppContract.kt` (`de.blaintino.contract`) ist in beiden Repos identisch; nur gemeinsam ändern.
+  - Idempotent über `EXTERNAL_ID` (gespeichert in `Reminder.origin`); `origin` muss beim Bearbeiten
+    erhalten bleiben (Editor, Orts-Editor), sonst geht die Rückmeldung verloren.
+  - Jedes Extra wird in `Interop.validate` geprüft (reine Funktion, `InteropTest`); `OPEN_URI` nur
+    `ddbd://`, „Liste öffnen“ hakt nicht ab.
+  - `Actions.markDone` meldet `done`, `Actions.delete` bei offenen `dismissed`.
+  - Senden mit `FLAG_INCLUDE_STOPPED_PACKAGES`, sonst erreicht die Rückmeldung eine gestoppte App nicht.
 
 ## Rahmenbedingungen
 

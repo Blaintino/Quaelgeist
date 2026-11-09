@@ -88,6 +88,7 @@ object Interop {
     /** Explizit an [pkg], und nur eine App mit derselben Signatur bekommt die Nachricht. */
     private fun report(ctx: Context, id: String, pkg: String, status: String, reason: String? = null) {
         val i = Intent(Q.ACTION_REMINDER_STATUS).setPackage(pkg)
+            .addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES) // auch wenn „Denk dran“ gerade gestoppt ist
             .putExtra(AppContract.EXTRA_CONTRACT_VERSION, AppContract.VERSION)
             .putExtra(Q.EXTRA_EXTERNAL_ID, id)
             .putExtra(Q.EXTRA_STATUS, status)
