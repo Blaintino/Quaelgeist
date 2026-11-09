@@ -29,8 +29,14 @@ object AppContract {
     object Quaelgeist {
         val PACKAGES = listOf("de.quaelgeist", "de.quaelgeist.beta", "de.quaelgeist.debug")
 
-        /** Broadcast an Quälgeist: Erinnerung im Hintergrund anlegen (idempotent über [EXTRA_EXTERNAL_ID]). */
+        /**
+         * Broadcast an Quälgeist: Erinnerung im Hintergrund anlegen. Gibt es die [EXTRA_EXTERNAL_ID] schon,
+         * wird eine offene Erinnerung nur geändert, wenn [EXTRA_REVISION] größer ist als die gespeicherte
+         * (gleicher Stand erneut geschickt = keine Änderung).
+         */
         const val ACTION_CREATE_REMINDER = "de.quaelgeist.action.CREATE_REMINDER"
+        /** Broadcast an Quälgeist: offene Erinnerung entfernen (die Absenderin hat zurückgezogen). Ohne Rückmeldung. */
+        const val ACTION_CANCEL_REMINDER = "de.quaelgeist.action.CANCEL_REMINDER"
         /** Broadcast von Quälgeist, explizit an [EXTRA_SOURCE_PACKAGE]: Stand der Erinnerung. */
         const val ACTION_REMINDER_STATUS = "de.quaelgeist.action.REMINDER_STATUS"
 
@@ -41,6 +47,7 @@ object AppContract {
         const val EXTRA_DUE_AT = "DUE_AT"                  // Long (Epoch ms), optional; fehlt = sofort
         const val EXTRA_FROM_NAME = "FROM_NAME"            // String, optional, bis 100 Zeichen („von Lisa“)
         const val EXTRA_OPEN_URI = "OPEN_URI"              // String, optional, muss mit ddbd:// beginnen
+        const val EXTRA_REVISION = "REVISION"              // Long, optional (fehlt = 0), Stand der Inhalte
 
         const val EXTRA_STATUS = "STATUS"                  // einer der STATUS_*-Werte
         const val EXTRA_REASON = "REASON"                  // String, nur bei STATUS_REJECTED

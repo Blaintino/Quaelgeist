@@ -204,6 +204,10 @@ Cloud-Sessions haben weder Emulator noch Handy.
   - `AppContract.kt` (`de.blaintino.contract`) ist in beiden Repos identisch; nur gemeinsam ändern.
   - Idempotent über `EXTERNAL_ID` (gespeichert in `Reminder.origin`); `origin` muss beim Bearbeiten
     erhalten bleiben (Editor, Orts-Editor), sonst geht die Rückmeldung verloren.
+  - Ändern: dieselbe id mit größerer `REVISION` passt eine offene Erinnerung an
+    (`Interop.applyUpdate`, reine Funktion); gleicher oder kleinerer Stand ändert nichts, damit ein
+    erneuter Zustellversuch kein Verschieben überschreibt. `CANCEL_REMINDER` entfernt eine offene
+    Erinnerung ohne Rückmeldung (`Interop.cancel`, nur vom selben `SOURCE_PACKAGE`).
   - Jedes Extra wird in `Interop.validate` geprüft (reine Funktion, `InteropTest`); `OPEN_URI` nur
     `ddbd://`, „Liste öffnen“ hakt nicht ab.
   - `Actions.markDone` meldet `done`, `Actions.delete` bei offenen `dismissed`.

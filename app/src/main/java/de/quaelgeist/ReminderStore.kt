@@ -90,6 +90,7 @@ private fun Reminder.toJson() = JSONObject().apply {
         put("origin", JSONObject().apply {
             put("externalId", o.externalId); put("sourcePackage", o.sourcePackage)
             put("fromName", o.fromName); put("note", o.note); put("openUri", o.openUri)
+            put("revision", o.revision)
         })
     }
 }
@@ -124,6 +125,7 @@ private fun JSONObject.toReminder() = Reminder(
         Origin(
             externalId = o.optString("externalId"), sourcePackage = o.optString("sourcePackage"),
             fromName = o.optString("fromName"), note = o.optString("note"), openUri = o.optString("openUri"),
+            revision = o.optLong("revision", 0),
         )
     },
 )
