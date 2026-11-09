@@ -86,6 +86,12 @@ private fun Reminder.toJson() = JSONObject().apply {
     put("windowStartMin", windowStartMin)
     put("windowEndMin", windowEndMin)
     put("checkIntervalMin", checkIntervalMin)
+    origin?.let { o ->
+        put("origin", JSONObject().apply {
+            put("externalId", o.externalId); put("sourcePackage", o.sourcePackage)
+            put("fromName", o.fromName); put("note", o.note); put("openUri", o.openUri)
+        })
+    }
 }
 
 private fun JSONObject.toReminder() = Reminder(
@@ -114,4 +120,10 @@ private fun JSONObject.toReminder() = Reminder(
     windowStartMin = optInt("windowStartMin", -1),
     windowEndMin = optInt("windowEndMin", -1),
     checkIntervalMin = optInt("checkIntervalMin", GeoLogic.DEFAULT_INTERVAL_MIN),
+    origin = optJSONObject("origin")?.let { o ->
+        Origin(
+            externalId = o.optString("externalId"), sourcePackage = o.optString("sourcePackage"),
+            fromName = o.optString("fromName"), note = o.optString("note"), openUri = o.optString("openUri"),
+        )
+    },
 )

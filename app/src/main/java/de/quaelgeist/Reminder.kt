@@ -42,6 +42,7 @@ data class Reminder(
     val windowStartMin: Int = -1, // Zeitfenster der Ortserkennung, Minuten ab Mitternacht; -1 = immer
     val windowEndMin: Int = -1,
     val checkIntervalMin: Int = GeoLogic.DEFAULT_INTERVAL_MIN, // Standort-Prüfintervall
+    val origin: Origin? = null, // von einer anderen App angelegt (ddbd), siehe [Interop]
 ) {
     val isPlace: Boolean get() = placeId != 0L
 
@@ -52,3 +53,16 @@ data class Reminder(
         const val DEFAULT_WEEKEND_TIME_MIN = 7 * 60
     }
 }
+
+/**
+ * Herkunft einer Erinnerung, die eine andere eigene App über `CREATE_REMINDER` angelegt hat
+ * (Listen-App „Denk dran“, siehe [Interop]). Bleibt beim Bearbeiten erhalten, damit Erledigen und
+ * Löschen weiter an [sourcePackage] gemeldet werden.
+ */
+data class Origin(
+    val externalId: String,
+    val sourcePackage: String,
+    val fromName: String = "",
+    val note: String = "",
+    val openUri: String = "", // nur ddbd://, sonst leer
+)

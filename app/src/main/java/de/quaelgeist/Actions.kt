@@ -38,6 +38,7 @@ object Actions {
         ReminderStore(ctx).upsert(updated)
         Scheduler.schedule(ctx, updated)
         if (r.isPlace) GeoWatch.replan(ctx)
+        if (updated.done) Interop.reportDone(ctx, updated)             // an ddbd zurückmelden
     }
 
     /** Ort erkannt: Termin = jetzt, dann wie ein fälliger Alarm (Meldung, Nag-Kette). */
@@ -101,7 +102,9 @@ object Actions {
     }
 
     fun delete(ctx: Context, id: Long) {
-        val wasPlace = ReminderStore(ctx).get(id)?.isPlace == true
+        val r = ReminderStore(ctx).get(id)
+        val wasPlace = r?.isPlace == true
+        r?.let { Interop.reportDismissed(ctx, it) }                   // offene: an ddbd „weggeklickt“
         Scheduler.cancel(ctx, id)
         Notifier.cancel(ctx, id)
         ReminderStore(ctx).delete(id)

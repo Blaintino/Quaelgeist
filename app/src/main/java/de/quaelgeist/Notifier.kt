@@ -112,6 +112,13 @@ object Notifier {
         )
     }
 
+    /** „Liste öffnen“ bei Erinnerungen aus ddbd: öffnet ddbd://list/<id>, hakt nicht ab. */
+    private fun openUriIntent(ctx: Context, r: Reminder, uri: String): PendingIntent = PendingIntent.getActivity(
+        ctx, r.id.toInt(),
+        Intent(Intent.ACTION_VIEW, Uri.parse(uri)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+    )
+
     /**
      * Darf diese Meldung klingeln und vibrieren? Nein, wenn eine andere Erinnerung das gerade
      * erst getan hat (siehe [ALERT_WINDOW_MS]). Alarm-Broadcasts laufen nacheinander im
@@ -149,6 +156,11 @@ object Notifier {
             if (r.isPlace) append(placeLabel(ctx, r)).append(" · ").append(time)
             else append("Fällig: ").append(time)
             if (r.nagCount > 0) append(" · ").append(r.nagCount + 1).append(". Erinnerung")
+            // Von ddbd angelegt: Absender und Notiz (nur Klartext)
+            r.origin?.let { o ->
+                if (o.fromName.isNotBlank()) append(" · von ").append(o.fromName)
+                if (o.note.isNotBlank()) append("\n").append(o.note)
+            }
         }
         val screen = nagScreenIntent(ctx, r)
 
@@ -185,6 +197,11 @@ object Notifier {
                             .setAuthenticationRequired(true)
                             .build(),
                     )
+                } else {
+                    // Von ddbd: Liste öffnen, ohne abzuhaken (nur ddbd://, siehe [Interop.isOpenableUri])
+                    r.origin?.openUri?.takeIf(Interop::isOpenableUri)?.let { uri ->
+                        addAction(0, "Liste öffnen", openUriIntent(ctx, r, uri))
+                    }
                 }
             }
             .build()
