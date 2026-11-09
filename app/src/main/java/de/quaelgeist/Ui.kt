@@ -651,7 +651,8 @@ private fun ReminderCard(r: Reminder, now: Long, onEdit: () -> Unit) {
                     color = if (overdue) MaterialTheme.colorScheme.error
                     else MaterialTheme.colorScheme.onSurface,
                 )
-                val extra = listOf(repeatLabel(r), nagLabel(r)).filter { it.isNotEmpty() }
+                val from = r.origin?.fromName?.takeIf { it.isNotBlank() }?.let { "von $it" }.orEmpty()
+                val extra = listOf(from, repeatLabel(r), nagLabel(r)).filter { it.isNotEmpty() }
                     .joinToString(" · ")
                 Text(
                     extra,
@@ -741,6 +742,7 @@ private fun EditDialog(
                 },
                 weekendTimeMin = weekendMin,
                 link = Links.normalize(rawLink) ?: "",
+                origin = initial?.origin, // von ddbd angelegt: Rückmeldung bleibt erhalten
             ).let(Recurrence::alignStart),
         )
     }

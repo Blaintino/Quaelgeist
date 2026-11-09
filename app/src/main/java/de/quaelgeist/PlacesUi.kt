@@ -271,6 +271,7 @@ fun PlaceReminderDialog(
             placeId = place.id,
             placeTrigger = trigger,
             placeArmed = true,
+            origin = initial?.origin,
             windowStartMin = if (windowOn) windowStart else -1,
             windowEndMin = if (windowOn) windowEnd else -1,
             checkIntervalMin = (interval.toIntOrNull() ?: settings.placeIntervalMin)

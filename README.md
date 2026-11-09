@@ -72,6 +72,11 @@ Google-Dienste, kein Netzwerk und keine Konten.
   *17:00* (jeweils heute, falls noch nicht vorbei, sonst morgen – die Beschriftung zeigt es) –
   gespeichert mit 10-Minuten-Erinnern, ohne Wiederholung. *Im Editor öffnen* öffnet den
   vollen Editor mit dem getippten Titel.
+- **Quälgeister aus „Denk dran“** (eigene Listen-App, Repo `Blaintino/ddbd`): Schickt dir jemand
+  dort einen Quälgeist, legt Quälgeist ihn im Hintergrund an, als einmalige Erinnerung mit dem
+  eingestellten Intervall. Meldung und Karte zeigen „von Lisa“ und die Notiz, *Liste öffnen*
+  springt zur verknüpften Liste. Abhaken meldet „erledigt“ zurück, Löschen „weggeklickt“.
+  Funktioniert nur mit Release-Builds beider Apps (gleiche Signatur).
 - **Einstellungen** (Zahnrad oben rechts): oben *Zuverlässigkeit* (Prüfliste und Test), dann
   feste Uhrzeiten (2–4, Vorgabe 9:30 und 17:00), die beiden Verschieben-Dauern (Vorgabe 10 Min
   und 1 Std, auch auf den Karten und in der Schnelleingabe), Vorgaben für neue Erinnerungen
@@ -172,6 +177,8 @@ Quälgeist für das Band einschalten.
 | `Receivers.kt` | Alarm, Schaltflächen, Neustart |
 | `Ui.kt`, `MainActivity.kt` | Oberfläche (Jetpack Compose): Tabs *Offen* / *Archiv*, Editor |
 | `QuickAdd.kt` | Homescreen-Widget und Schnelleingabe-Fenster |
+| `Interop.kt` | Schnittstelle für „Denk dran“: `CREATE_REMINDER`, Status zurück (Tests: `InteropTest.kt`) |
+| `de/blaintino/contract/AppContract.kt` | Vertrag mit „Denk dran“, identisch im Repo `ddbd` |
 | `Settings.kt` | Einstellungen: Speicher, Regeln (Tests: `SettingsTest.kt`), Bildschirm |
 | `QuickTimes.kt` | Zeitvorschläge der Schnelleingabe (Tests: `QuickTimesTest.kt`) |
 
