@@ -76,6 +76,8 @@ Google-Dienste, kein Netzwerk und keine Konten.
   dort einen Quälgeist, legt Quälgeist ihn im Hintergrund an, als einmalige Erinnerung mit dem
   eingestellten Intervall. Meldung und Karte zeigen „von Lisa“ und die Notiz, *Liste öffnen*
   springt zur verknüpften Liste. Abhaken meldet „erledigt“ zurück, Löschen „weggeklickt“.
+  Ändert die Absenderin den Quälgeist nachträglich, passt Quälgeist Titel, Notiz und Zeitpunkt an;
+  zieht sie ihn zurück, verschwindet er.
   Funktioniert nur mit Release-Builds beider Apps (gleiche Signatur).
 - **Einstellungen** (Zahnrad oben rechts): oben *Zuverlässigkeit* (Prüfliste und Test), dann
   feste Uhrzeiten (2–4, Vorgabe 9:30 und 17:00), die beiden Verschieben-Dauern (Vorgabe 10 Min

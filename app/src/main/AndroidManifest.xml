@@ -126,6 +126,16 @@
             </intent-filter>
         </receiver>
 
+        <!-- Von „Denk dran“ zurückgezogen: offene Erinnerung entfernen -->
+        <receiver
+            android:name=".CancelReminderReceiver"
+            android:exported="true"
+            android:permission="de.blaintino.permission.INTERNAL">
+            <intent-filter>
+                <action android:name="de.quaelgeist.action.CANCEL_REMINDER" />
+            </intent-filter>
+        </receiver>
+
         <receiver
             android:name=".ActionReceiver"
             android:exported="false" />

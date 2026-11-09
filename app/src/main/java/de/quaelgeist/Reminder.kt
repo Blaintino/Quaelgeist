@@ -65,4 +65,5 @@ data class Origin(
     val fromName: String = "",
     val note: String = "",
     val openUri: String = "", // nur ddbd://, sonst leer
+    val revision: Long = 0, // Stand der Inhalte; Änderungen nur mit größerem Wert (siehe [Interop.applyUpdate])
 )
