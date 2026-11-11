@@ -2,38 +2,110 @@
 
 Android-App (Kotlin, Jetpack Compose, minSdk 26, targetSdk 37) für hartnäckige Erinnerungen
 im Stil der iOS-App „Due". Eine Erinnerung meldet sich im einstellbaren Abstand immer wieder,
-bis sie abgehakt oder verschoben wird. Siehe `README.md` für Funktionen und Dateiübersicht.
+bis sie abgehakt oder verschoben wird – zu einer Uhrzeit oder beim Ankommen/Verlassen eines
+Orts. Privates Projekt eines Nutzers (Huawei Band 11 am Handgelenk), komplett lokal.
+Funktionen für Nutzer: `README.md`. Offene Wünsche und Entscheidungen: `TODO.md`.
+Aktueller Stand und offene Fragen: Abschnitt „Übergabe-Notizen“ ganz unten.
 
-## Status und Werkzeuge
+## Die App in Kürze
 
-Kompiliert, Lint ohne echte Befunde, Unit-Tests für `Recurrence.kt` in
-`app/src/test/java/de/quaelgeist/RecurrenceTest.kt` (Zeitzone fest `Europe/Berlin`, damit
-Sommer-/Winterzeit-Fälle reproduzierbar sind). Auf einem echten Gerät noch nicht getestet –
-Cloud-Sessions haben weder Emulator noch Handy.
+| | Stabil | Beta | Debug (lokal) |
+| --- | --- | --- | --- |
+| App-ID | `de.quaelgeist` | `de.quaelgeist.beta` | `de.quaelgeist.debug` |
+| Name | Quälgeist | Quälgeist Beta | Quälgeist (Debug) |
+| Branch | `main` | `next` | – |
+| Release-Tag | `quaelgeist-v<run_number>` | `quaelgeist-beta-v<run_number>` | – |
+| APK | `Quaelgeist-<n>.apk` | `Quaelgeist-Beta-<n>.apk` | – |
+| Obtainium-Filter | `^quaelgeist-v` | `^quaelgeist-beta-v` | – |
+
+- Installation beim Nutzer: über [Obtainium](https://obtainium.imranr.dev/) mit der URL
+  `https://github.com/Blaintino/Quaelgeist` und dem Filter oben (kein Token nötig, Repo ist
+  öffentlich). Alternativ APK aus den GitHub-Releases.
+- Die Release-Nummer ist die `github.run_number` und damit auch `versionCode`. Sie zählt jeden
+  CI-Lauf (auch auf PR-Branches), Releases sind also nicht lückenlos nummeriert.
+- Zusammenhang mit anderen Repos des Nutzers: `Blaintino/ddbd` („Denk dran“, Listen-App,
+  Schnittstelle s. u.), `Blaintino/Chip` (Kalender-App, ruft `QUICK_ADD` auf),
+  `Blaintino/FH-Stempelkarte` (Vorbild der Ortserkennung).
+
+## Aufbau des Codes
+
+Alles in `app/src/main/java/de/quaelgeist/`, eine Tabelle pro Datei steht in `README.md`
+(„Aufbau“). Die wichtigsten Wege:
+
+- Daten: `Reminder` (Modell) → `ReminderStore` (JSON in SharedPreferences, `commit()`).
+  Orte analog `Place`/`PlaceStore`, Einstellungen `AppSettings` in `Settings.kt`.
+- Zeit-Alarm: `Scheduler.schedule` (`setAlarmClock`) → `AlarmReceiver` (in `Receivers.kt`) plant
+  die nächste Wiederholung und ruft `Notifier.show` + `Notifier.buzz`.
+- Bedienung: Benachrichtigung (`Notifier`) → `ActionReceiver` bzw. `NagActivity`
+  (Verschieben-Bildschirm) → `Actions` (Erledigt, Verschieben, Löschen, Orte).
+- Terminrechnung: `Recurrence` (Serien, Wochenend-Modus), `QuickTimes` (Schnellwahl),
+  `DueGroups` (Abschnitte, „überfällig“), `OpenReminders` (weitere offene).
+- Oberfläche: `MainActivity` + `Ui.kt` (Tabs, Karten, Editor), `PlacesUi.kt` (Orte),
+  `QuickAdd.kt` (Widget + Schnelleingabe), `Settings.kt` (Einstellungen), `Reliability.kt`
+  (Prüfliste).
+- Orte: `GeoWatch` (Android-Anbindung) + `GeoLogic` (reine Regeln), `PlusCode`, `PlaceInput`.
+- Andere Apps: `Interop.kt` + `de/blaintino/contract/AppContract.kt` (Denk dran),
+  `QuickAddActivity` (Aktion `QUICK_ADD`).
+- Reine Logik liegt bewusst in eigenen Objekten ohne Android-Abhängigkeit und hat
+  Unit-Tests in `app/src/test/java/de/quaelgeist/` (Zeitzone fest `Europe/Berlin`, damit
+  Sommer-/Winterzeit-Fälle reproduzierbar sind). Neue Logik genauso bauen.
+
+## Bauen und testen
 
 - Toolchain wie `android-vorlage` (Monorepo `Claude_Code_Projekte`): Gradle 9.8, AGP 9.4 mit
   eingebautem Kotlin (kein `org.jetbrains.kotlin.android`-Plugin, nur
   `org.jetbrains.kotlin.plugin.compose`), Versionen in `gradle/libs.versions.toml`, JDK 21.
-- Befehle: `./gradlew testDebugUnitTest lintDebug assembleDebug`.
-- `.github/workflows/build-apk.yml`: Tests + Lint, signierte Release-APK aus den Secrets
-  `ANDROID_KEYSTORE_BASE64` usw.; nur auf `main` mit Secrets ein GitHub Release
-  `quaelgeist-v<run_number>` (Obtainium filtert auf `^quaelgeist-v`). Ohne Secrets Debug-APK mit
-  Warnung. Nie auf Debug-Signatur „umstellen", sonst schlagen Updates am Handy fehl.
-- Release-Signatur nur über Umgebungsvariablen (`ANDROID_KEYSTORE_PATH` usw.), nie einen
-  Keystore einchecken oder in einer Cloud-Session erzeugen.
-- `versionCode` kommt aus `VERSION_CODE` (= `github.run_number` im CI).
+- Vor jedem Push: `./gradlew testDebugUnitTest lintDebug assembleDebug` (genau das prüft auch
+  das CI). Lint hat nur bekannte, harmlose Hinweise (UseKtx, AutoboxingStateCreation,
+  UnusedAttribute, NewerVersionAvailable, InlinedApi) – neue Befunde nicht einschleppen.
+- Cloud-Session vorbereiten (kein Android SDK vorinstalliert): Kommandozeilen-Tools von
+  `dl.google.com/android/repository/commandlinetools-linux-…_latest.zip` nach
+  `/root/android-sdk/cmdline-tools/latest`, Lizenzen mit `sdkmanager --licenses` annehmen,
+  `local.properties` mit `sdk.dir=/root/android-sdk` (ist in `.gitignore`). Die passende
+  Plattform lädt Gradle dann selbst.
+- Cloud-Sessions haben weder Emulator noch Handy: Oberfläche und Alarme lassen sich nur beim
+  Nutzer prüfen. Deshalb in jeder Antwort klar sagen, was nur gebaut/getestet und was am Gerät
+  noch unbestätigt ist.
 - Debug-Build: App-ID `de.quaelgeist.debug`, Name über den Manifest-Platzhalter `appLabel`.
-- Beta (Wunsch des Nutzers: neue Funktionen erst neben der funktionierenden App testen,
-  später als Update über Quälgeist): Entwicklung auf dem Branch `next`, `main` bleibt stabil
-  und Rückweg. `QUAELGEIST_BETA=true` (im CI nur auf `next`) → App-ID `de.quaelgeist.beta`,
-  Name „Quälgeist Beta“, Symbol `ic_launcher_beta` (Platzhalter `appIcon`), Release
-  `quaelgeist-beta-v<run_number>` (Obtainium `^quaelgeist-beta-v`), gleicher Keystore.
-  Feature-PRs zielen auf `next`. Weil `next` später als Update über `de.quaelgeist` mit
-  dessen echten Daten läuft, neue `Reminder`-Felder immer mit Vorgabe und `opt…` im
-  `ReminderStore` lesen. `taskAffinity` im Manifest über `${applicationId}`, sonst teilen sich
-  Beta und stabile App Aufgaben.
+  Beta lokal mit `QUAELGEIST_BETA=true`.
 
-## Verhalten, das erhalten bleiben muss
+## Ablauf: Branch → PR → Merge → Release
+
+1. Auf dem Branch arbeiten, den die Session vorgibt (`claude/…`), sonst neuen anlegen. Vorher
+   `git fetch` und vom aktuellen `main` (bzw. `next`, s. u.) abzweigen – auf `main` landen auch
+   Änderungen aus anderen Sessions.
+2. Bauen/testen (s. o.), README.md und CLAUDE.md (feste Entscheidungen) mitpflegen, committen,
+   pushen. Commit-Texte deutsch.
+3. PR nur anlegen, wenn der Nutzer es sagt. Bisher galt fast immer „PR erstellen und mergen“:
+   dann CI auf dem **aktuellen** Head abwarten (`check_suite`-Meldungen können zu einem älteren
+   Commit gehören), nur bei grün mergen (Merge-Commit; `expectedHeadSha` braucht die volle
+   40-stellige SHA).
+4. Der Push auf `main` baut die signierte Release-APK und legt das Release
+   `quaelgeist-v<run_number>` an (Dauer ca. 3 Minuten). Dem Nutzer danach den Release-Link
+   nennen – er aktualisiert über Obtainium.
+5. Workflow `.github/workflows/build-apk.yml`: Tests + Lint, Signatur aus den Secrets
+   `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`,
+   `ANDROID_KEY_PASSWORD`. Releases nur auf `main`/`next` und nur mit Secrets; ohne Secrets nur
+   eine Debug-APK als Artefakt mit Warnung. Nie auf Debug-Signatur „umstellen“, sonst schlagen
+   Updates am Handy fehl („App nicht installiert“).
+6. Release-Signatur nur über Umgebungsvariablen (`ANDROID_KEYSTORE_PATH` usw.), nie einen
+   Keystore einchecken oder in einer Cloud-Session erzeugen.
+
+Beta (Wunsch des Nutzers: neue Funktionen erst neben der funktionierenden App testen, später
+als Update über Quälgeist): Entwicklung auf dem Branch `next`, `main` bleibt stabil und
+Rückweg. `QUAELGEIST_BETA=true` (im CI nur auf `next`) → App-ID `de.quaelgeist.beta`, Name
+„Quälgeist Beta“, Symbol `ic_launcher_beta` (Platzhalter `appIcon`), gleicher Keystore.
+Weil `next` später als Update über `de.quaelgeist` mit dessen echten Daten läuft, neue
+`Reminder`-Felder immer mit Vorgabe und `opt…` im `ReminderStore` lesen. `taskAffinity` im
+Manifest über `${applicationId}`, sonst teilen sich Beta und stabile App Aufgaben.
+Achtung: Seit PR #12 sind alle Änderungen direkt nach `main` gegangen, `next` ruht (ist
+vollständig in `main` enthalten). Welcher Weg künftig gilt, ist eine offene Frage (s. u.).
+
+## Feste Entscheidungen – nicht ohne Rückfrage ändern
+
+Alles hier hat der Nutzer so gewollt oder es trägt die Zuverlässigkeit. Wer davon abweichen
+will, fragt vorher nach.
+
 
 - Zuverlässigkeit hat Vorrang vor neuen Funktionen (Wunsch des Nutzers: bei einer anderen
   Erinnerungs-App kamen Meldungen und Vibration unzuverlässig und nie aufs Huawei Band 11).
@@ -229,10 +301,50 @@ Cloud-Sessions haben weder Emulator noch Handy.
 - Eine eigene Uhr-App ist nicht vorgesehen. Der Nutzer trägt ein Huawei Band 11 (kein
   Wear OS): Meldungen kommen nur über Huawei Health an, Schaltflächen gibt es dort nicht.
 
-## Mögliche nächste Schritte (nur auf Nachfrage)
+## Gelernte Fallen
 
-- Eigenes App-Icon statt `ic_popup_reminder`.
-- Backup/Export der Erinnerungen als JSON.
-- Medikamente: erschwertes Abhaken (lange drücken/Rückfrage/QR-Code), Einnahme-Verlauf,
-  Rückgängig nach versehentlichem Abhaken.
-- Ruhezeiten (nachts pausieren), zwei Dringlichkeitsstufen.
+- Maven Central antwortet in Cloud-Sessions zeitweise mit 429 (Too Many Requests): Gradle mit
+  `--max-workers=1` mehrmals wiederholen, bereits geladene Pakete bleiben im Cache.
+- Einstellungen eines Benachrichtigungskanals (Vibration, Ton) sind nach dem Anlegen fest. Wer
+  sie ändern muss, braucht eine neue Kanal-ID und löscht die alte (so entstand `nag_alert`).
+- Kanal-Vibration plus eigene Vibration ergab doppelte Vibration; deshalb vibriert nur
+  `Notifier.buzz`. Ein einzelner 1-s-Impuls war zu schwach (übersehen).
+- `setSilent(true)` von NotificationCompat steckt die Meldung in eine Gruppe „silent“ – gewollt,
+  damit gleichzeitige Erinnerungen nur einmal klingeln.
+- Compose-`Text` mit `maxLines = 1` bricht am Leerzeichen um und schneidet ab: „Morgen 9:30“
+  erschien auf schmalen Knöpfen nur als „Morgen“. Zweizeilig setzen oder `softWrap = false`.
+- Direkt in die Mitteilungszentrale springen geht nicht (keine öffentliche API).
+- Receiver dürfen ab Android 12 keine Activity starten (daher `OpenLinkActivity`).
+- Android-Aktionen aus alten Benachrichtigungen können nach dem Weiterlaufen einer Serie
+  ankommen – deshalb der `baseAt`-Abgleich in `Actions`.
+- Wochenend-Modus/Zeitumstellung: Uhrzeiten immer aus `anchorAt`/`Recurrence.timeOn` holen, nie
+  aus `baseAt` weiterrechnen, sonst rutschen Serien dauerhaft.
+- Die Stop-Hook-Prüfung meldet „unpushed commits“, wenn der Session-Branch nur auf `main`
+  zurückgesetzt wurde – dann einfach pushen (enthält keine neuen Änderungen).
+- Feiertage kennt die App nicht (kein Netzwerk, keine Feiertagsliste).
+
+## Übergabe-Notizen (Stand 2026-11-11)
+
+- **Letzter Release:** `quaelgeist-v53` vom 2026-11-09 (Merge von PR #20, „Denk dran“ ändern und
+  zurückziehen). Letzte Beta: `quaelgeist-beta-v29`; die Beta ruht, `next` ist vollständig in
+  `main` enthalten.
+- **Branches:** `main` = aktueller Stand, alles gemergt. Keine offenen PRs, keine Issues.
+  `next`, `claude/nifty-faraday-wugku4`, `claude/vigilant-lamport-2afb5d` und
+  `claude/obtainium-quelgeist-daten-l9pvvw` sind vollständig in `main` enthalten (letzterer
+  trägt nur diese Doku-Änderung). Ein älterer Commit dort („weiter zur nächsten offenen
+  Erinnerung“) ist durch PR #12 überholt.
+- **Halbfertig/Probephase:** Die beiden Hilfen des Verschieben-Bildschirms (`autoAdvance`,
+  `showOthers`) laufen beide; der Nutzer wollte nach dem Ausprobieren entscheiden, ob eine
+  wegfällt. Inzwischen sind beide in den Einstellungen abschaltbar.
+- **Offene Fragen an den Nutzer:**
+  1. Verschieben-Bildschirm: „Weiter zur nächsten“ und/oder „Liste der übrigen“ behalten, oder
+     beide als Einstellung lassen?
+  2. Beta-Weg: Sollen neue Funktionen wieder über `next` (Beta) gehen, wie oben beschrieben,
+     oder weiter direkt nach `main`?
+  3. Zeitumstellung am 25.10.2026: Kamen tägliche Erinnerungen (auch mit Wochenend-Modus) am
+     25. und 26.10. zur richtigen Uhrzeit? Am Gerät nie bestätigt.
+  4. Wiederkehrende Orts-Erinnerungen (bisher bewusst zurückgestellt): noch gewünscht?
+- **Artifacts/Mockups:** Für Quälgeist gibt es keine; im Chat zur Übergabe wurden keine
+  erstellt. Die Entscheidung „Variante C“ (Serien zeigen „wiederholt …“ im Erledigt-Knopf)
+  stammt aus einer anderen Session; das Ergebnis steht oben unter `NagActivity`.
+
