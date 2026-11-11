@@ -177,12 +177,16 @@ Quälgeist für das Band einschalten.
 | `PlusCode.kt`, `PlaceInput.kt` | Plus Codes und Koordinaten offline lesen (Tests: `PlusCodeTest.kt`, `PlaceInputTest.kt`) |
 | `PlacesUi.kt` | Tab *Orte*, Editor für Orts-Erinnerungen, Orte verwalten |
 | `Receivers.kt` | Alarm, Schaltflächen, Neustart |
-| `Ui.kt`, `MainActivity.kt` | Oberfläche (Jetpack Compose): Tabs *Offen* / *Archiv*, Editor |
+| `Ui.kt`, `MainActivity.kt` | Oberfläche (Jetpack Compose): Tabs *Wiederkehrend* / *Einmalig* / *Orte* / *Archiv*, Karten, Editor |
+| `DueGroups.kt`, `OpenReminders.kt` | Abschnitte der Übersicht, „überfällig“, weitere offene Erinnerungen (Tests: `DueGroupsTest.kt`, `OpenRemindersTest.kt`) |
 | `QuickAdd.kt` | Homescreen-Widget und Schnelleingabe-Fenster |
 | `Interop.kt` | Schnittstelle für „Denk dran“: `CREATE_REMINDER`, Status zurück (Tests: `InteropTest.kt`) |
 | `de/blaintino/contract/AppContract.kt` | Vertrag mit „Denk dran“, identisch im Repo `ddbd` |
 | `Settings.kt` | Einstellungen: Speicher, Regeln (Tests: `SettingsTest.kt`), Bildschirm |
 | `QuickTimes.kt` | Zeitvorschläge der Schnelleingabe (Tests: `QuickTimesTest.kt`) |
+
+Hinweise für Entwickler (und Claude Code) stehen in [`CLAUDE.md`](CLAUDE.md), offene Wünsche in
+[`TODO.md`](TODO.md).
 
 ## Bekannte Einschränkungen
 
