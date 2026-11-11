@@ -1,24 +1,80 @@
 # Quälgeist – Hinweise für Claude Code
 
-Android-App (Kotlin, Jetpack Compose, minSdk 26, targetSdk 37) für hartnäckige Erinnerungen
-im Stil der iOS-App „Due". Eine Erinnerung meldet sich im einstellbaren Abstand immer wieder,
-bis sie abgehakt oder verschoben wird. Siehe `README.md` für Funktionen und Dateiübersicht.
+Android-App (Kotlin, Jetpack Compose, minSdk 26, targetSdk/compileSdk 37) für hartnäckige
+Erinnerungen im Stil der iOS-App „Due". Eine Erinnerung meldet sich im einstellbaren Abstand
+immer wieder, bis sie abgehakt oder verschoben wird – zu einer Uhrzeit oder beim
+Ankommen/Verlassen eines Orts. Nur für den privaten Gebrauch des Nutzers (Samsung Galaxy S26
+Ultra, Huawei Band 11), kein Play Store. Funktionen für Nutzer: `README.md`. Offene Wünsche und
+Entscheidungen: `TODO.md`. Aktueller Stand: Abschnitt „Übergabe-Notizen“ ganz unten.
 
-## Status und Werkzeuge
+## Die App auf einen Blick
 
-Kompiliert, Lint ohne echte Befunde, Unit-Tests für `Recurrence.kt` in
-`app/src/test/java/de/quaelgeist/RecurrenceTest.kt` (Zeitzone fest `Europe/Berlin`, damit
-Sommer-/Winterzeit-Fälle reproduzierbar sind). Auf einem echten Gerät noch nicht getestet –
-Cloud-Sessions haben weder Emulator noch Handy.
+| | |
+| --- | --- |
+| App-ID | `de.quaelgeist` (Debug `de.quaelgeist.debug`, Beta `de.quaelgeist.beta`) |
+| App-Name | „Quälgeist“ (Debug „Quälgeist (Debug)“, Beta „Quälgeist Beta“) |
+| Release-Tag | `quaelgeist-v<run_number>`, APK `Quaelgeist-<run_number>.apk` (Beta: `quaelgeist-beta-v…`, `Quaelgeist-Beta-….apk`) |
+| Installation | GitHub Releases + [Obtainium](https://obtainium.imranr.dev/), URL `https://github.com/Blaintino/Quaelgeist`, Filter `^quaelgeist-v` (Beta: zweite App, Filter `^quaelgeist-beta-v`). Kein Token nötig (öffentliches Repo). |
+| `versionCode` | `VERSION_CODE` = `github.run_number`; `versionName` = `1.0.<run_number>` |
+| Signatur | Release-Keystore nur in den Repo-Secrets (`ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`) und lokal beim Nutzer |
+| Verwandte Repos | `Blaintino/ddbd` („Denk dran“, Schnittstelle), `Blaintino/Chip` (Kalender, ruft `QUICK_ADD`), `Blaintino/FH-Stempelkarte` (Vorbild Ortserkennung), Monorepo `Blaintino/claude_code_projekte` (`android-vorlage`, Toolchain-Vorbild) |
 
-- Toolchain wie `android-vorlage` (Monorepo `Claude_Code_Projekte`): Gradle 9.8, AGP 9.4 mit
-  eingebautem Kotlin (kein `org.jetbrains.kotlin.android`-Plugin, nur
-  `org.jetbrains.kotlin.plugin.compose`), Versionen in `gradle/libs.versions.toml`, JDK 21.
-- Befehle: `./gradlew testDebugUnitTest lintDebug assembleDebug`.
-- `.github/workflows/build-apk.yml`: Tests + Lint, signierte Release-APK aus den Secrets
-  `ANDROID_KEYSTORE_BASE64` usw.; nur auf `main` mit Secrets ein GitHub Release
-  `quaelgeist-v<run_number>` (Obtainium filtert auf `^quaelgeist-v`). Ohne Secrets Debug-APK mit
-  Warnung. Nie auf Debug-Signatur „umstellen", sonst schlagen Updates am Handy fehl.
+## Aufbau des Codes
+
+Ein Modul `app`, Paket `de.quaelgeist` (plus `de.blaintino.contract.AppContract`, identisch im
+Repo `ddbd`). Dateitabelle mit Aufgaben: `README.md`, Abschnitt „Aufbau“. Grobe Schichten:
+
+- **Daten:** `Reminder.kt` (Modell), `ReminderStore.kt` (JSON in SharedPreferences, `commit()`),
+  `Place.kt`/`PlaceStore` (Orte, Ortszustand, `GeoLog`), `Settings.kt` (`AppSettings`).
+- **Reine Logik, JVM-testbar (immer hier hinein, mit Test):** `Recurrence.kt`, `DueGroups.kt`,
+  `OpenReminders.kt`, `QuickTimes.kt`, `Links.kt`, `GeoLogic.kt`, `PlusCode.kt`,
+  `PlaceInput.kt`, `Interop.validate`/`applyUpdate`, `SettingsRules`. Tests in
+  `app/src/test/java/de/quaelgeist/*Test.kt` (Zeitzone fest `Europe/Berlin`, damit
+  Sommer-/Winterzeit-Fälle reproduzierbar sind).
+- **System:** `Scheduler.kt` (AlarmManager), `Receivers.kt` (Alarm, Knöpfe, Neustart),
+  `Notifier.kt` (Meldung, Kanal, Vibration), `Actions.kt` (Erledigt/Verschieben/Löschen –
+  einziger Weg für Zustandsänderungen), `GeoWatch.kt` (Ortserkennung), `Interop.kt`
+  (Denk-dran-Schnittstelle), `Reliability.kt` (Prüfliste).
+- **Oberfläche (Compose):** `MainActivity.kt` + `Ui.kt` (Tabs, Editor), `NagActivity.kt`
+  (Verschieben-Bildschirm), `PlacesUi.kt`, `QuickAdd.kt` (Widget mit `RemoteViews` +
+  `QuickAddActivity`), `OpenLinkActivity.kt`, Einstellungen in `Settings.kt`.
+
+## Bauen und testen
+
+- Toolchain wie `android-vorlage`: Gradle 9.8 (Wrapper), AGP 9.4 mit eingebautem Kotlin
+  (kein `org.jetbrains.kotlin.android`-Plugin, nur `org.jetbrains.kotlin.plugin.compose`),
+  Versionen in `gradle/libs.versions.toml`, JDK 21, Android SDK über `ANDROID_HOME` oder
+  `local.properties`.
+- Vor jedem Push: `./gradlew testDebugUnitTest lintDebug assembleDebug` (genau das, plus
+  `assembleRelease`, läuft im CI).
+- Beta lokal: `QUAELGEIST_BETA=true ./gradlew assembleDebug`.
+- Cloud-Sessions haben weder Emulator noch Handy. Getestet auf dem Gerät wird nur vom Nutzer
+  (Release über Obtainium, Diagnose z. B. per `adb shell dumpsys …`). UI-Änderungen deshalb
+  klein halten und im PR beschreiben, was der Nutzer am Handy prüfen soll.
+
+## Ablauf: Branch → PR → Merge → Release
+
+So läuft es tatsächlich seit PR #12 (2026-10-26):
+
+1. Arbeit auf einem Feature-Branch **`claude/<name>`** – nur `main`, `next` und `claude/**`
+   lösen den Workflow aus. Andere Branch-Namen (z. B. `ddbd-schnittstelle`, `ccr-…`) werden vor
+   dem Merge **gar nicht** gebaut; der Workflow hat keinen `pull_request`-Trigger.
+2. PR gegen `main` (Titel und Beschreibung deutsch). Der Nutzer merged selbst; Claude merged
+   nicht ungefragt.
+3. Push auf `main` → `.github/workflows/build-apk.yml`: Tests + Lint, signierte Release-APK,
+   GitHub Release `quaelgeist-v<run_number>` (nur `main` *und* Secrets vorhanden). Ohne Secrets
+   nur eine Debug-APK mit Warnung.
+4. Obtainium auf dem Handy holt das Release als Update.
+5. Reine Doku-Commits direkt auf `main` mit `[skip ci]` im Commit-Titel, damit kein Release
+   entsteht (so geschehen bei `8428103`, `065e768`).
+
+Beta-Weg (dokumentiert, aber seit 2026-10-25 nicht mehr benutzt, siehe Übergabe-Notizen):
+Feature-PRs gegen `next` → Release `quaelgeist-beta-v…` → später PR `next` → `main`.
+
+## Feste Entscheidungen und Toolchain-Regeln (nicht ohne Rückfrage ändern)
+
+- Nie auf Debug-Signatur „umstellen“: Updates am Handy schlagen sonst fehl („App nicht
+  installiert“).
 - Release-Signatur nur über Umgebungsvariablen (`ANDROID_KEYSTORE_PATH` usw.), nie einen
   Keystore einchecken oder in einer Cloud-Session erzeugen.
 - `versionCode` kommt aus `VERSION_CODE` (= `github.run_number` im CI).
@@ -28,12 +84,13 @@ Cloud-Sessions haben weder Emulator noch Handy.
   und Rückweg. `QUAELGEIST_BETA=true` (im CI nur auf `next`) → App-ID `de.quaelgeist.beta`,
   Name „Quälgeist Beta“, Symbol `ic_launcher_beta` (Platzhalter `appIcon`), Release
   `quaelgeist-beta-v<run_number>` (Obtainium `^quaelgeist-beta-v`), gleicher Keystore.
-  Feature-PRs zielen auf `next`. Weil `next` später als Update über `de.quaelgeist` mit
-  dessen echten Daten läuft, neue `Reminder`-Felder immer mit Vorgabe und `opt…` im
-  `ReminderStore` lesen. `taskAffinity` im Manifest über `${applicationId}`, sonst teilen sich
+  Ursprünglich zielten Feature-PRs auf `next`; seit PR #12 gehen sie direkt auf `main` (ob der
+  Beta-Weg bleibt, ist eine offene Frage, siehe `TODO.md`). Unabhängig davon: Jede neue Version
+  läuft als Update über die echten Daten des Nutzers, deshalb neue `Reminder`-Felder immer mit
+  Vorgabe und `opt…` im `ReminderStore` lesen, nie ein Feld umbenennen oder umdeuten. `taskAffinity` im Manifest über `${applicationId}`, sonst teilen sich
   Beta und stabile App Aufgaben.
 
-## Verhalten, das erhalten bleiben muss
+## Verhalten, das erhalten bleiben muss (Entscheidungen des Nutzers, nicht ohne Rückfrage ändern)
 
 - Zuverlässigkeit hat Vorrang vor neuen Funktionen (Wunsch des Nutzers: bei einer anderen
   Erinnerungs-App kamen Meldungen und Vibration unzuverlässig und nie aufs Huawei Band 11).
@@ -228,11 +285,59 @@ Cloud-Sessions haben weder Emulator noch Handy.
 - Die App ist für den privaten Gebrauch gedacht (`USE_EXACT_ALARM` ist deshalb gesetzt).
 - Eine eigene Uhr-App ist nicht vorgesehen. Der Nutzer trägt ein Huawei Band 11 (kein
   Wear OS): Meldungen kommen nur über Huawei Health an, Schaltflächen gibt es dort nicht.
+  Entscheidung des Nutzers (2026-10-24): Für eine Uhr wird nichts programmiert, solange die
+  nächste Smartwatch nicht feststeht (Kandidaten: Pixel Watch oder Pebble). Die besprochenen
+  Optionen stehen in `TODO.md`, Punkt 1.
 
-## Mögliche nächste Schritte (nur auf Nachfrage)
 
-- Eigenes App-Icon statt `ic_popup_reminder`.
-- Backup/Export der Erinnerungen als JSON.
-- Medikamente: erschwertes Abhaken (lange drücken/Rückfrage/QR-Code), Einnahme-Verlauf,
-  Rückgängig nach versehentlichem Abhaken.
-- Ruhezeiten (nachts pausieren), zwei Dringlichkeitsstufen.
+Weitere Ideen und alles Offene stehen nummeriert in `TODO.md` (nur auf Nachfrage umsetzen).
+
+## Gelernte Fallen
+
+- **Kanaleinstellungen sind nach dem Anlegen fest.** Wer Ton/Vibration/Wichtigkeit eines
+  Kanals ändern will, braucht eine neue Kanal-ID und muss die alte löschen (so entstand
+  `nag_alert`).
+- **Huawei Health spiegelt nur neue Meldungen:** `ongoing` oder ein bloßes Update kommen oft
+  nicht aufs Band an, deshalb `cancel` + `notify` bei jedem Nag.
+- **Vibration:** Kanal-Vibration plus eigene Vibration = doppelt; Herstellereinstellungen
+  dämpfen Benachrichtigungs-Vibration, `USAGE_ALARM` nicht. Ein 1-s-Impuls wurde übersehen.
+- **`apply()` statt `commit()` verliert Daten**, wenn der Receiver-Prozess direkt danach stirbt.
+- **Ab Android 12 dürfen Receiver keine Activity starten** (Trampolin-Verbot) – deshalb ist
+  „Link öffnen“ eine eigene `OpenLinkActivity`.
+- **Rückmeldung an gestoppte Apps** (Denk dran) kommt nur mit `FLAG_INCLUDE_STOPPED_PACKAGES` an.
+- **Beta und stabile App** teilen sich ohne `taskAffinity="${applicationId}"` die Aufgaben.
+- **Ortserkennung:** Jede Neuanmeldung liefert sofort Standort und WLAN und füllte das Protokoll
+  bei jedem App-Start – nur neu anmelden, wenn sich die Anmeldung ändert.
+- **`rescheduleAll` bei jedem App-Start** ließ überfällige Erinnerungen ohne erlaubte
+  Wiederholung bei jedem Öffnen klingeln (`Reminder.canNag`).
+- **`QuickAddActivity` ist exportiert** (für Chip) – darf keine Extras auswerten und nichts
+  ohne Eingabe speichern.
+- **CI:** Debug-APKs aus dem CI sind bei jedem Lauf anders signiert (nur zum Ausprobieren).
+  Obtainium ignoriert Vorabversionen, deshalb sind Beta-Releases normale Releases mit eigenem
+  Tag-Präfix. Branches außerhalb von `main`/`next`/`claude/**` werden nicht gebaut. Die
+  Release-Nummern springen (z. B. v46 → v49), weil auch Läufe auf `claude/**`-Branches die
+  `run_number` hochzählen; das ist gewollt.
+- **Cloud-Session-Branches** (`ccr-…`) starten oft auf einem alten Stand von `main`. Vor der
+  Arbeit `git fetch origin main` und auf den aktuellen Stand setzen.
+
+## Übergabe-Notizen (Stand 2026-11-11)
+
+- **Letzter Release:** [`quaelgeist-v53`](https://github.com/Blaintino/Quaelgeist/releases/tag/quaelgeist-v53)
+  vom 2026-11-09, gebaut aus `16af64f` (Merge von PR #20 „Erinnerungen von ‚Denk dran‘ ändern und
+  zurückziehen“). Letzter Beta-Release: `quaelgeist-beta-v29` (2026-10-22).
+- **Offene PRs:** keine außer dieser Doku-PR (Branch `ccr-5aa1b614-7b3ubx`, nur `CLAUDE.md`,
+  `TODO.md`, zwei Zeilen der Dateitabelle in `README.md`). Offene Issues: keine.
+- **Halbfertiges:** nichts bekannt. Alle Funktions-PRs #1–#20 sind gemergt und released.
+- **Branches auf GitHub:**
+  - `main` – stabil, Quelle aller Releases.
+  - `next` – Beta-Branch, enthält nichts Eigenes mehr und steht 23 Commits hinter `main`
+    (zuletzt gemergt über PR #11 am 2026-10-25).
+  - `claude/nifty-faraday-wugku4`, `claude/vigilant-lamport-2afb5d` – vollständig gemergt.
+  - `claude/obtainium-quelgeist-daten-l9pvvw` – ein nicht gemergter Commit `e5a8cce`, eine ältere
+    Fassung von „Verschieben-Bildschirm: weiter zur nächsten offenen Erinnerung“; überholt durch
+    `0cd28c3` (PR #12). Nicht mergen.
+  - `ccr-5aa1b614-7b3ubx` – diese Doku-Übergabe.
+- **Offene Fragen an den Nutzer:** siehe `TODO.md`, Abschnitt „Offene Fragen“ (Beta-Weg `next`,
+  Aufräumen alter Branches, Probephase im Verschieben-Bildschirm, Smartwatch-Wahl).
+- **Außerhalb des Repos:** keine Artifacts, Mockups oder Dateien aus der Übergabe-Session; die
+  Smartwatch-/Pebble-/AntennaPod-Besprechung steht vollständig in `TODO.md`.

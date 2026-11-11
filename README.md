@@ -177,7 +177,8 @@ Quälgeist für das Band einschalten.
 | `PlusCode.kt`, `PlaceInput.kt` | Plus Codes und Koordinaten offline lesen (Tests: `PlusCodeTest.kt`, `PlaceInputTest.kt`) |
 | `PlacesUi.kt` | Tab *Orte*, Editor für Orts-Erinnerungen, Orte verwalten |
 | `Receivers.kt` | Alarm, Schaltflächen, Neustart |
-| `Ui.kt`, `MainActivity.kt` | Oberfläche (Jetpack Compose): Tabs *Offen* / *Archiv*, Editor |
+| `Ui.kt`, `MainActivity.kt` | Oberfläche (Jetpack Compose): Tabs *Wiederkehrend* / *Einmalig* / *Orte* / *Archiv*, Editor |
+| `DueGroups.kt`, `OpenReminders.kt` | Abschnitte der Übersicht, offene Erinnerungen für den Verschieben-Bildschirm (Tests: `DueGroupsTest.kt`, `OpenRemindersTest.kt`) |
 | `QuickAdd.kt` | Homescreen-Widget und Schnelleingabe-Fenster |
 | `Interop.kt` | Schnittstelle für „Denk dran“: `CREATE_REMINDER`, Status zurück (Tests: `InteropTest.kt`) |
 | `de/blaintino/contract/AppContract.kt` | Vertrag mit „Denk dran“, identisch im Repo `ddbd` |
