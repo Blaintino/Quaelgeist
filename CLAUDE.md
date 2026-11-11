@@ -47,7 +47,14 @@ Repo `ddbd`). Dateitabelle mit Aufgaben: `README.md`, Abschnitt „Aufbau“. Gr
   `local.properties`.
 - Vor jedem Push: `./gradlew testDebugUnitTest lintDebug assembleDebug` (genau das, plus
   `assembleRelease`, läuft im CI).
+- Lint hat nur bekannte, harmlose Hinweise (UseKtx, AutoboxingStateCreation, UnusedAttribute,
+  NewerVersionAvailable, InlinedApi) – keine neuen Befunde einschleppen.
 - Beta lokal: `QUAELGEIST_BETA=true ./gradlew assembleDebug`.
+- Cloud-Session vorbereiten (kein Android SDK vorinstalliert): Kommandozeilen-Tools von
+  `dl.google.com/android/repository/commandlinetools-linux-…_latest.zip` nach
+  `/root/android-sdk/cmdline-tools/latest`, Lizenzen mit `sdkmanager --licenses` annehmen,
+  `local.properties` mit `sdk.dir=/root/android-sdk` (in `.gitignore`). Die Plattform lädt
+  Gradle selbst.
 - Cloud-Sessions haben weder Emulator noch Handy. Getestet auf dem Gerät wird nur vom Nutzer
   (Release über Obtainium, Diagnose z. B. per `adb shell dumpsys …`). UI-Änderungen deshalb
   klein halten und im PR beschreiben, was der Nutzer am Handy prüfen soll.
@@ -59,14 +66,19 @@ So läuft es tatsächlich seit PR #12 (2026-10-26):
 1. Arbeit auf einem Feature-Branch **`claude/<name>`** – nur `main`, `next` und `claude/**`
    lösen den Workflow aus. Andere Branch-Namen (z. B. `ddbd-schnittstelle`, `ccr-…`) werden vor
    dem Merge **gar nicht** gebaut; der Workflow hat keinen `pull_request`-Trigger.
-2. PR gegen `main` (Titel und Beschreibung deutsch). Der Nutzer merged selbst; Claude merged
-   nicht ungefragt.
+2. PR gegen `main` (Titel, Beschreibung und Commits deutsch), aber nur, wenn der Nutzer es sagt.
+   Bisher galt fast immer „PR erstellen und mergen“: dann CI auf dem **aktuellen** Head abwarten
+   (`check_suite`-Meldungen können zu einem älteren Commit gehören), nur bei grün mergen
+   (Merge-Commit; `expectedHeadSha` braucht die volle 40-stellige SHA). README.md und die festen
+   Entscheidungen hier im selben PR mitpflegen.
 3. Push auf `main` → `.github/workflows/build-apk.yml`: Tests + Lint, signierte Release-APK,
    GitHub Release `quaelgeist-v<run_number>` (nur `main` *und* Secrets vorhanden). Ohne Secrets
    nur eine Debug-APK mit Warnung.
-4. Obtainium auf dem Handy holt das Release als Update.
-5. Reine Doku-Commits direkt auf `main` mit `[skip ci]` im Commit-Titel, damit kein Release
-   entsteht (so geschehen bei `8428103`, `065e768`).
+4. Obtainium auf dem Handy holt das Release als Update. Dem Nutzer nach dem Merge den
+   Release-Link nennen (Build dauert ca. 3 Minuten) und klar sagen, was nur gebaut/getestet und
+   was am Gerät noch unbestätigt ist.
+5. Reine Doku-Änderungen mit `[skip ci]` im Commit- bzw. PR-Titel, damit kein Release entsteht
+   (so geschehen bei `8428103`, `065e768` und PR #22).
 
 Beta-Weg (dokumentiert, aber seit 2026-10-25 nicht mehr benutzt, siehe Übergabe-Notizen):
 Feature-PRs gegen `next` → Release `quaelgeist-beta-v…` → später PR `next` → `main`.
@@ -317,6 +329,20 @@ Weitere Ideen und alles Offene stehen nummeriert in `TODO.md` (nur auf Nachfrage
   Tag-Präfix. Branches außerhalb von `main`/`next`/`claude/**` werden nicht gebaut. Die
   Release-Nummern springen (z. B. v46 → v49), weil auch Läufe auf `claude/**`-Branches die
   `run_number` hochzählen; das ist gewollt.
+- **Maven Central antwortet in Cloud-Sessions zeitweise mit 429:** Gradle mit
+  `--max-workers=1` mehrmals wiederholen, Geladenes bleibt im Cache.
+- **`setSilent(true)`** (NotificationCompat) steckt die Meldung in eine Gruppe „silent“ – gewollt,
+  damit gleichzeitige Erinnerungen nur einmal klingeln.
+- **Compose-`Text` mit `maxLines = 1`** bricht am Leerzeichen um und schneidet ab: „Morgen 9:30“
+  erschien auf schmalen Knöpfen nur als „Morgen“. Zweizeilig setzen oder `softWrap = false`.
+- **Aktionen aus alten Benachrichtigungen** kommen evtl. erst an, wenn die Serie schon
+  weitergelaufen ist – deshalb der `baseAt`-Abgleich in `Actions`.
+- **Serien nie aus `baseAt` weiterrechnen**, Uhrzeiten immer aus `anchorAt`/`Recurrence.timeOn`,
+  sonst rutschen sie nach Monatsende/Zeitumstellung dauerhaft.
+- **Stop-Hook „unpushed commits“** nach bloßem Zurücksetzen des Session-Branches auf `main`:
+  einfach pushen.
+- **Parallele Sessions:** Zwei Sessions haben am 2026-11-11 gleichzeitig dieselbe Aufgabe
+  erledigt (PR #21 und #22). Vor dem Anlegen eines PRs offene PRs prüfen.
 - **Cloud-Session-Branches** (`ccr-…`) starten oft auf einem alten Stand von `main`. Vor der
   Arbeit `git fetch origin main` und auf den aktuellen Stand setzen.
 
@@ -324,22 +350,17 @@ Weitere Ideen und alles Offene stehen nummeriert in `TODO.md` (nur auf Nachfrage
 
 - **Letzter Release:** [`quaelgeist-v53`](https://github.com/Blaintino/Quaelgeist/releases/tag/quaelgeist-v53)
   vom 2026-11-09, gebaut aus `16af64f` (Merge von PR #20 „Erinnerungen von ‚Denk dran‘ ändern und
-  zurückziehen“). Letzter Beta-Release: `quaelgeist-beta-v29` (2026-10-22).
-- **Offene PRs:** #22 (diese Doku-Übergabe, Branch `ccr-5aa1b614-7b3ubx`) und #21 (Branch
-  `claude/obtainium-quelgeist-daten-l9pvvw`), eine zeitgleich entstandene zweite Doku-Übergabe
-  derselben Aufgabe. Beide ändern `CLAUDE.md`, `README.md` und `TODO.md` und schließen sich
-  gegenseitig aus: nur eine mergen, die andere schließen. Offene Issues: keine.
-- **Halbfertiges:** nichts bekannt. Alle Funktions-PRs #1–#20 sind gemergt und released.
-- **Branches auf GitHub:**
-  - `main` – stabil, Quelle aller Releases.
-  - `next` – Beta-Branch, enthält nichts Eigenes mehr und steht 23 Commits hinter `main`
-    (zuletzt gemergt über PR #11 am 2026-10-25).
-  - `claude/nifty-faraday-wugku4`, `claude/vigilant-lamport-2afb5d` – vollständig gemergt.
-  - `claude/obtainium-quelgeist-daten-l9pvvw` – Kopf von PR #21; enthält außerdem `e5a8cce`, eine
-    ältere Fassung von „Verschieben-Bildschirm: weiter zur nächsten offenen Erinnerung“, die über
-    `0cd28c3` (PR #12) schon in `main` ist (in PR #21 per Merge-Commit zusammengeführt).
-  - `ccr-5aa1b614-7b3ubx` – diese Doku-Übergabe.
-- **Offene Fragen an den Nutzer:** siehe `TODO.md`, Abschnitt „Offene Fragen“ (Beta-Weg `next`,
-  Aufräumen alter Branches, Probephase im Verschieben-Bildschirm, Smartwatch-Wahl).
-- **Außerhalb des Repos:** keine Artifacts, Mockups oder Dateien aus der Übergabe-Session; die
-  Smartwatch-/Pebble-/AntennaPod-Besprechung steht vollständig in `TODO.md`.
+  zurückziehen“). Letzter Beta-Release: `quaelgeist-beta-v29` (2026-10-22); die Beta ruht.
+  Der Merge dieser Doku (PR #22) erzeugt bewusst kein Release (`[skip ci]`).
+- **Offene PRs und Issues:** keine. Die parallele Doku-PR #21 ist geschlossen, ihr Inhalt steckt
+  in PR #22.
+- **Halbfertiges:** nichts im Code. Probephase im Verschieben-Bildschirm (`TODO.md` 5).
+- **Branches auf GitHub:** `main` ist der aktuelle Stand. `next`, `claude/nifty-faraday-wugku4`,
+  `claude/vigilant-lamport-2afb5d`, `claude/obtainium-quelgeist-daten-l9pvvw` und
+  `ccr-5aa1b614-7b3ubx` sind vollständig in `main` enthalten (Löschen: `TODO.md` 4).
+- **Offene Fragen an den Nutzer** (Details in `TODO.md`): Beta-Weg `next` (3), alte Branches
+  löschen (4), eine Hilfe im Verschieben-Bildschirm streichen (5), Zeitumstellung am Gerät
+  bestätigt? (6), wiederkehrende Orts-Erinnerungen noch gewünscht? (7), Smartwatch-Wahl (1).
+- **Artifacts/Mockups:** Für Quälgeist gibt es keine. Die Entscheidung „Variante C“ (Serien
+  zeigen „wiederholt …“ im Erledigt-Knopf) stammt aus einer anderen Session; das Ergebnis steht
+  oben unter `NagActivity`. Die Smartwatch-/Pebble-/AntennaPod-Besprechung steht in `TODO.md`.

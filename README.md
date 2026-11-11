@@ -185,6 +185,9 @@ Quälgeist für das Band einschalten.
 | `Settings.kt` | Einstellungen: Speicher, Regeln (Tests: `SettingsTest.kt`), Bildschirm |
 | `QuickTimes.kt` | Zeitvorschläge der Schnelleingabe (Tests: `QuickTimesTest.kt`) |
 
+Hinweise für Entwickler (und Claude Code) stehen in [`CLAUDE.md`](CLAUDE.md), offene Wünsche in
+[`TODO.md`](TODO.md).
+
 ## Bekannte Einschränkungen
 
 - Ob das Huawei Band 11 die Meldungen anzeigt, hängt auch von Huawei Health ab
