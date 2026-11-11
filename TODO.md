@@ -46,8 +46,12 @@ Stand: 2026-11-11
    Beta-Weg aus der Doku nehmen und den Branch löschen (CI-Teil kann bleiben).
 
 4. **Offene Frage: alte Branches löschen?** Gemergt und überflüssig: `claude/nifty-faraday-wugku4`,
-   `claude/vigilant-lamport-2afb5d`. `claude/obtainium-quelgeist-daten-l9pvvw` hat nur noch den
-   überholten Commit `e5a8cce` (ersetzt durch PR #12). Nur mit Zustimmung löschen.
+   `claude/vigilant-lamport-2afb5d`. `claude/obtainium-quelgeist-daten-l9pvvw` ist zurzeit Kopf
+   der parallelen Doku-PR #21; erst nach deren Merge oder Schließen aufräumen. Nur mit
+   Zustimmung löschen.
+
+12. **Offene Frage: PR #21 oder PR #22?** Zwei Sessions haben am 2026-11-11 gleichzeitig dieselbe
+    Doku-Übergabe gemacht. Eine mergen, die andere schließen.
 
 5. **Offene Frage: Probephase im Verschieben-Bildschirm.** `autoAdvance` (nach
    Erledigt/Verschieben die nächste offene zeigen) und `showOthers` (Liste der übrigen) sind

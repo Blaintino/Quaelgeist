@@ -325,17 +325,19 @@ Weitere Ideen und alles Offene stehen nummeriert in `TODO.md` (nur auf Nachfrage
 - **Letzter Release:** [`quaelgeist-v53`](https://github.com/Blaintino/Quaelgeist/releases/tag/quaelgeist-v53)
   vom 2026-11-09, gebaut aus `16af64f` (Merge von PR #20 „Erinnerungen von ‚Denk dran‘ ändern und
   zurückziehen“). Letzter Beta-Release: `quaelgeist-beta-v29` (2026-10-22).
-- **Offene PRs:** keine außer dieser Doku-PR (Branch `ccr-5aa1b614-7b3ubx`, nur `CLAUDE.md`,
-  `TODO.md`, zwei Zeilen der Dateitabelle in `README.md`). Offene Issues: keine.
+- **Offene PRs:** #22 (diese Doku-Übergabe, Branch `ccr-5aa1b614-7b3ubx`) und #21 (Branch
+  `claude/obtainium-quelgeist-daten-l9pvvw`), eine zeitgleich entstandene zweite Doku-Übergabe
+  derselben Aufgabe. Beide ändern `CLAUDE.md`, `README.md` und `TODO.md` und schließen sich
+  gegenseitig aus: nur eine mergen, die andere schließen. Offene Issues: keine.
 - **Halbfertiges:** nichts bekannt. Alle Funktions-PRs #1–#20 sind gemergt und released.
 - **Branches auf GitHub:**
   - `main` – stabil, Quelle aller Releases.
   - `next` – Beta-Branch, enthält nichts Eigenes mehr und steht 23 Commits hinter `main`
     (zuletzt gemergt über PR #11 am 2026-10-25).
   - `claude/nifty-faraday-wugku4`, `claude/vigilant-lamport-2afb5d` – vollständig gemergt.
-  - `claude/obtainium-quelgeist-daten-l9pvvw` – ein nicht gemergter Commit `e5a8cce`, eine ältere
-    Fassung von „Verschieben-Bildschirm: weiter zur nächsten offenen Erinnerung“; überholt durch
-    `0cd28c3` (PR #12). Nicht mergen.
+  - `claude/obtainium-quelgeist-daten-l9pvvw` – Kopf von PR #21; enthält außerdem `e5a8cce`, eine
+    ältere Fassung von „Verschieben-Bildschirm: weiter zur nächsten offenen Erinnerung“, die über
+    `0cd28c3` (PR #12) schon in `main` ist (in PR #21 per Merge-Commit zusammengeführt).
   - `ccr-5aa1b614-7b3ubx` – diese Doku-Übergabe.
 - **Offene Fragen an den Nutzer:** siehe `TODO.md`, Abschnitt „Offene Fragen“ (Beta-Weg `next`,
   Aufräumen alter Branches, Probephase im Verschieben-Bildschirm, Smartwatch-Wahl).
