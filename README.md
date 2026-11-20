@@ -67,6 +67,8 @@ Google-Dienste, kein Netzwerk und keine Konten.
   Erledigt-Datum, neueste zuerst). Dort *Wieder öffnen* (mit neuem Termin), einzeln löschen
   oder *Archiv leeren*. Wiederkehrende Erinnerungen springen beim Abhaken zum nächsten
   Termin und bleiben unter *Wiederkehrend*.
+- **Löschen mit Rückfrage**: Der Papierkorb auf einer Karte (Übersicht, Orte, Archiv) fragt
+  erst nach („… löschen?“), bevor eine Erinnerung endgültig weg ist.
 - **Schnelleingabe-Widget**: Homescreen lange drücken → *Widgets* → *Quälgeist*. Ein Tipp
   öffnet ein kleines Fenster mit Tastatur: Titel tippen, dann *10 Min*, *1 Std*, *9:30* oder
   *17:00* (jeweils heute, falls noch nicht vorbei, sonst morgen – die Beschriftung zeigt es) –

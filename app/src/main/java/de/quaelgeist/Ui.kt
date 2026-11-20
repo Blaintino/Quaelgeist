@@ -571,9 +571,7 @@ private fun ArchiveCard(r: Reminder, onReopen: () -> Unit) {
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.weight(1f),
                 )
-                IconButton(onClick = { Actions.delete(ctx, r.id) }) {
-                    Icon(Icons.Default.Delete, contentDescription = "Löschen")
-                }
+                DeleteButton(r)
             }
             Text(
                 if (r.doneAt > 0) "Erledigt am ${fmt(r.doneAt)}" else "Erledigt",
@@ -588,6 +586,31 @@ private fun ArchiveCard(r: Reminder, onReopen: () -> Unit) {
                 Text("Wieder öffnen")
             }
         }
+    }
+}
+
+/** Papierkorb mit Rückfrage (Wunsch des Nutzers: Löschen nie ohne Bestätigung). */
+@Composable
+internal fun DeleteButton(r: Reminder) {
+    val ctx = LocalContext.current
+    var confirm by remember { mutableStateOf(false) }
+    IconButton(onClick = { confirm = true }) {
+        Icon(Icons.Default.Delete, contentDescription = "Löschen")
+    }
+    if (confirm) {
+        AlertDialog(
+            onDismissRequest = { confirm = false },
+            title = { Text("„${r.title}“ löschen?") },
+            text = { Text("Die Erinnerung wird endgültig gelöscht.") },
+            confirmButton = {
+                TextButton(onClick = { confirm = false; Actions.delete(ctx, r.id) }) {
+                    Text("Löschen")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirm = false }) { Text("Abbrechen") }
+            },
+        )
     }
 }
 
@@ -638,9 +661,7 @@ private fun ReminderCard(r: Reminder, now: Long, onEdit: () -> Unit) {
                     textDecoration = if (r.done) TextDecoration.LineThrough else null,
                     modifier = Modifier.weight(1f),
                 )
-                IconButton(onClick = { Actions.delete(ctx, r.id) }) {
-                    Icon(Icons.Default.Delete, contentDescription = "Löschen")
-                }
+                DeleteButton(r)
             }
             if (r.done) {
                 Text("Erledigt", color = MaterialTheme.colorScheme.onSurfaceVariant)

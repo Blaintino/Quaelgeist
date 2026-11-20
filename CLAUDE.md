@@ -177,6 +177,8 @@ Cloud-Sessions haben weder Emulator noch Handy.
   `NagActivity`), Start-Tab. Gelten nur für neu angelegte Erinnerungen. Bewusst nicht
   einstellbar: alles, was die Zuverlässigkeit trägt (Alarmart, Vibration, Kanal, Meldung).
   In Compose über `rememberSettings()` (lädt bei `Settings.version` neu).
+- Löschen einer Erinnerung (Papierkorb auf allen Karten: Übersicht, Orte, Archiv) nur nach
+  Rückfrage (`DeleteButton` in `Ui.kt`, Wunsch des Nutzers).
 - `BootReceiver` plant nach Neustart, App-Update und Zeitänderung alle Alarme neu.
 - Tabs in `App()`: `TAB_RECURRING` (offen, `repeatType != NONE`), `TAB_ONCE` (offen,
   einmalig), `TAB_ARCHIVE` (`done`). Start-Tab beim Öffnen aus den Einstellungen (Vorgabe `TAB_ONCE`, Wunsch des Nutzers); dazu `TAB_PLACES`. `save()` wechselt in den Tab der gespeicherten
