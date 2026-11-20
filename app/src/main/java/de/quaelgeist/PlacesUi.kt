@@ -188,9 +188,7 @@ private fun PlaceReminderCard(r: Reminder, place: Place?, onEdit: (Reminder) -> 
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.weight(1f),
                 )
-                IconButton(onClick = { Actions.delete(ctx, r.id) }) {
-                    Icon(Icons.Default.Delete, contentDescription = "Löschen")
-                }
+                DeleteButton(r)
             }
             Text(
                 triggerLabel(r.placeTrigger, place?.name ?: "Ort gelöscht"),
